@@ -3,8 +3,9 @@ import { expect, test } from './fixtures';
 
 test('玩家能以职校技术员完成合同困局、复制客观记录并用同一身份重试', async ({ context, page }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4173' });
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: /浮生\s*牌局/ })).toBeVisible();
+  await page.goto('/?playtest=adult-prototype');
+  await expect(page.getByRole('heading', { name: '成年困局规则试玩' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '登记出生' })).toHaveCount(0);
 
   await page.getByRole('button', { name: '以职校技术员开始原型' }).click();
   await expect(page.getByRole('heading', { name: '合同上没有写的事' })).toBeVisible();

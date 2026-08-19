@@ -34,6 +34,19 @@ function saveResolvedPrototype(
 }
 
 describe('玩家入口', () => {
+  it('成年原型试玩地址只展示身份入口，不允许误入童年主流程', () => {
+    saveGame(reduceGame(createGame(7), { type: 'BEGIN' }));
+    window.history.replaceState({}, '', '/?playtest=adult-prototype');
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: '成年困局规则试玩' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '登记出生' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '以名校毕业生开始原型' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '以职校技术员开始原型' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '以灵活就业者开始原型' })).toBeEnabled();
+  });
+
   it('从标题页进入普通人出生档案', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /浮生/ })).toBeInTheDocument();

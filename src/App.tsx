@@ -39,8 +39,14 @@ const APPROACH_NOTE: Record<Approach, string> = {
   共情: '理解他人，也让彼此靠近',
 };
 
+function isAdultPrototypePlaytest(): boolean {
+  return new URLSearchParams(window.location.search).get('playtest') === 'adult-prototype';
+}
+
 function initialState(): GameState {
-  return loadGame() ?? createGame();
+  const saved = loadGame();
+  if (isAdultPrototypePlaytest() && saved?.mode !== 'prototype') return createGame();
+  return saved ?? createGame();
 }
 
 function ResourceStrip({ state }: { state: GameState }) {
@@ -120,11 +126,34 @@ function AgeRail({ age, label }: { age: number | string; label: string }) {
   );
 }
 
-function TitleScreen({ onStart, onGuide, onPrototype }: {
+function TitleScreen({ onStart, onGuide, onPrototype, playtestOnly }: {
   onStart: () => void;
   onGuide: () => void;
   onPrototype: (identityId: StartingIdentityId) => void;
+  playtestOnly: boolean;
 }) {
+  if (playtestOnly) {
+    return (
+      <main className="title-screen title-screen--playtest">
+        <div className="title-screen__register" aria-hidden="true">P1 / 成年牌局 / 固定身份</div>
+        <p className="eyebrow">阶段 1 · 核心规则验证</p>
+        <h1>浮生<br />牌局</h1>
+        <section className="prototype-entry prototype-entry--playtest" aria-labelledby="prototype-entry-title">
+          <header><span>本轮试玩入口</span><h2 id="prototype-entry-title">成年困局规则试玩</h2></header>
+          <p>本轮不会经历童年，也不会根据童年生成身份。请按主持人分配，选择一个固定起手身份，直接进入24岁的合同牌局。</p>
+          <div>
+            {STARTING_IDENTITIES.map((identity) => (
+              <button key={identity.id} onClick={() => onPrototype(identity.id)} aria-label={`以${identity.title}开始原型`}>
+                <b>{identity.title}</b><span>{identity.passiveText}</span>
+              </button>
+            ))}
+          </div>
+          <button className="text-button prototype-entry__guide" onClick={onGuide}>先读成年牌局规则</button>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="title-screen">
       <div className="title-screen__register" aria-hidden="true">出生登记 / 未定级 / 普通人</div>
@@ -927,6 +956,7 @@ export function App() {
   const [endpoint, setEndpointState] = useState(() => localStorage.getItem('floating-life-cards.judge-endpoint') ?? '');
   const [guideOpen, setGuideOpen] = useState(false);
   const showChrome = state.phase !== 'title';
+  const adultPrototypePlaytest = isAdultPrototypePlaytest();
   const showJournal = showChrome && state.journal.length > 0
     && !(state.phase === 'deck' || (state.phase === 'encounter' && state.encounter?.chapterIndex === 0 && state.encounter.records.length <= 1));
   const openGuide = useCallback(() => setGuideOpen(true), []);
@@ -954,7 +984,7 @@ export function App() {
       <a className="skip-link" href="#game-content">跳到游戏内容</a>
       {showChrome && <AppHeader state={state} onReset={reset} onGuide={openGuide} endpoint={endpoint} setEndpoint={setEndpoint} />}
       <div id="game-content">
-        {state.phase === 'title' && <TitleScreen onStart={() => dispatch({ type: 'BEGIN' })} onGuide={openGuide} onPrototype={(identityId) => dispatch({ type: 'START_PROTOTYPE', identityId })} />}
+        {state.phase === 'title' && <TitleScreen playtestOnly={adultPrototypePlaytest} onStart={() => dispatch({ type: 'BEGIN' })} onGuide={openGuide} onPrototype={(identityId) => dispatch({ type: 'START_PROTOTYPE', identityId })} />}
         {state.phase === 'origin' && <OriginScreen state={state} dispatch={dispatch} />}
         {state.phase === 'growth' && <GrowthScreen state={state} dispatch={dispatch} />}
         {state.phase === 'growth-result' && <GrowthResultScreen state={state} dispatch={dispatch} />}

@@ -4,7 +4,9 @@ import { expect, test } from './fixtures';
 test.use({ viewport: { width: 390, height: 844 } });
 
 test('390像素玩家能用童年余温完成困局并在结案下载记录', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?playtest=adult-prototype');
+  await expect(page.getByRole('heading', { name: '成年困局规则试玩' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '登记出生' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '以名校毕业生开始原型' })).toBeVisible();
   await expect(page.getByRole('button', { name: '以职校技术员开始原型' })).toBeVisible();
   await expect(page.getByRole('button', { name: '以灵活就业者开始原型' })).toBeVisible();

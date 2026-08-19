@@ -12,7 +12,9 @@ async function focusByKeyboard(page: Page, accessibleName: string) {
 }
 
 test('玩家只用键盘就能选择身份、完成教学并唤起第一张记忆牌', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?playtest=adult-prototype');
+  await expect(page.getByRole('heading', { name: '成年困局规则试玩' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '登记出生' })).toHaveCount(0);
   await focusByKeyboard(page, '以名校毕业生开始原型');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: '合同上没有写的事' })).toBeVisible();

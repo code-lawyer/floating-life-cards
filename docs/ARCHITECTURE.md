@@ -98,7 +98,7 @@ stateDiagram-v2
 
 `playtestRecord.ts` 只暴露 `formatPrototypePlaytestRecord(state)`。它接受已经结案的成人原型状态，生成包含包版本、待主持人填写的匿名编号、身份、固定种子、终局资源、换手/余温和逐轮事实的Markdown；正式故事、未结困局或无效身份返回 `null`。版本从 `package.json` 单一来源读取。模块不读取浏览器、不联网，也不接收姓名、联系方式或访谈答案。React只负责提供同内容的剪贴板与Markdown下载入口，并显示复制成功或权限失败反馈。
 
-`npm run playtest` 先执行生产构建，再以Vite preview在固定4173端口监听本机与局域网地址。它只用于同一可信局域网内的现场试玩，不是预览部署或公网发布配置。
+`npm run playtest` 先执行生产构建，再以Vite preview在固定4173端口监听本机与局域网地址。阶段1使用 `?playtest=adult-prototype` 查询参数进入专用试玩壳：若本机残留正式故事存档则忽略该存档并回到身份选择；成人原型存档仍可刷新恢复。专用壳隐藏正式“登记出生”入口，只允许选择三个固定身份。它只用于同一可信局域网内的现场试玩，不是预览部署或公网发布配置。
 
 `playtestBatch.ts` 对制作工具暴露 `validatePlaytestBatch(markdownRecords)`，并导出输入、单份摘要与批次结果类型。命令行适配器传入证据目录中的Markdown；模块只用标题识别客观记录，其他观察笔记在分类后被忽略，不解析字段、不输出内容。它检查三份客观记录、构建版本、匿名编号、三个身份以及声明回合与逐轮事实是否一致，不推断选择理由或替代真人综合判断。`scripts/validate-playtest-batch.ts` 是本地文件系统适配器，`npm run validate:playtest -- <证据目录>` 以中文报告结果并在无效批次时返回非零退出码。该工具不被React导入，不改变冻结试玩构建。
 
