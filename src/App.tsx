@@ -72,12 +72,13 @@ function LifeMarkTag({ mark, verbose = false }: { mark: AdultMark; verbose?: boo
   );
 }
 
-function CardFace({ card, selected, disabled, onClick, actionLabel, compact = false, experience = 0, upgraded = false }: {
+function CardFace({ card, selected, disabled, onClick, actionPrefix, describedBy, compact = false, experience = 0, upgraded = false }: {
   card: LifeCard;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
-  actionLabel?: string;
+  actionPrefix?: string;
+  describedBy?: string;
   compact?: boolean;
   experience?: number;
   upgraded?: boolean;
@@ -100,7 +101,8 @@ function CardFace({ card, selected, disabled, onClick, actionLabel, compact = fa
   );
   if (onClick) {
     return (
-      <button className={`life-card ${selected ? 'life-card--selected' : ''}`} disabled={disabled} onClick={onClick} aria-label={actionLabel} aria-pressed={selected}>
+      <button className={`life-card ${selected ? 'life-card--selected' : ''}`} disabled={disabled} onClick={onClick} aria-describedby={describedBy} aria-pressed={selected}>
+        {actionPrefix && <span className="visually-hidden">{actionPrefix} </span>}
         {content}
       </button>
     );
@@ -495,22 +497,25 @@ function EncounterScreen({ state, dispatch, endpoint }: {
               const relation = preview.relation;
               const prediction = preview.playerScore > preview.worldScore ? '可推进' : preview.playerScore === preview.worldScore ? '会僵持' : '会受挫';
               const recommended = tutorialActive && tutorialStep === 1 && recommendedCard?.id === card.id;
+              const relationId = `play-relation-${card.id}`;
+              const previewId = `play-preview-${card.id}`;
               return (
                 <div className={`hand-option ${recommended ? 'hand-option--recommended' : ''}`} key={card.id}>
                   {recommended && <span className="recommended-stamp">建议先出这张</span>}
                   <CardFace
                     card={card}
                     compact
-                    actionLabel={`唤起「${card.title}」`}
+                    actionPrefix="唤起"
+                    describedBy={`${relationId} ${previewId}`}
                     disabled={Boolean(pendingCard) || (tutorialActive && tutorialStep === 0)}
                     onClick={() => void play(card)}
                     experience={state.cardExperience[card.id] ?? 0}
                     upgraded={state.upgradedCards.includes(card.id)}
                   />
-                  <span className={`relation relation--${relation}`}>
+                  <span id={relationId} className={`relation relation--${relation}`}>
                     {relation === 'advantage' ? '克制 · 牌力 +2' : relation === 'disadvantage' ? '受制 · 牌力 −1' : '同型 · 正面对拼'}
                   </span>
-                  <div className={`score-preview score-preview--${preview.playerScore > preview.worldScore ? 'win' : preview.playerScore === preview.worldScore ? 'draw' : 'loss'}`}>
+                  <div id={previewId} className={`score-preview score-preview--${preview.playerScore > preview.worldScore ? 'win' : preview.playerScore === preview.worldScore ? 'draw' : 'loss'}`}>
                     <span>预计得分</span><b>{preview.playerScore}</b><i>对</i><b>{preview.worldScore}</b><em>{prediction}</em>
                   </div>
                   {(!tutorialActive || tutorialStep === 2) && (

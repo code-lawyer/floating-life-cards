@@ -1,13 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('玩家能以职校技术员完成合同困局并用同一身份重试', async ({ page }) => {
-  const consoleErrors: string[] = [];
-  const pageErrors: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /浮生\s*牌局/ })).toBeVisible();
 
@@ -21,7 +14,7 @@ test('玩家能以职校技术员完成合同困局并用同一身份重试', as
 
   const retry = page.getByRole('button', { name: '用职校技术员再试一次' });
   for (let round = 0; round < 5 && !await retry.isVisible(); round += 1) {
-    await hand.getByRole('button', { name: /^唤起「/ }).first().click();
+    await hand.getByRole('button', { name: /^唤起/ }).first().click();
     const continueTutorial = page.getByRole('button', { name: '知道了，继续' });
     if (await continueTutorial.isVisible()) await continueTutorial.click();
   }
@@ -34,6 +27,4 @@ test('玩家能以职校技术员完成合同困局并用同一身份重试', as
   await expect(page.getByRole('region', { name: '起手身份' })).toContainText('职校技术员');
   await expect(page.getByText('第 1 / 5 轮')).toBeVisible();
   await expect(page.getByText('0 / 12')).toBeVisible();
-  expect(consoleErrors).toEqual([]);
-  expect(pageErrors).toEqual([]);
 });

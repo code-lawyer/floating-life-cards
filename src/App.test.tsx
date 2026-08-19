@@ -102,6 +102,9 @@ describe('玩家入口', () => {
     expect(screen.getByText('建议先出这张')).toBeInTheDocument();
     expect(handZone).toHaveFocus();
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    const playableCard = screen.getAllByRole('button', { name: /^唤起/ })[0]!;
+    expect(playableCard).toHaveAccessibleName(/牌力 \d+，守势 \d+/);
+    expect(playableCard).toHaveAccessibleDescription(/预计得分\s*\d+\s*对\s*\d+/);
   });
 
   it('减少动态效果时直接定位手牌而不执行平滑滚动', () => {

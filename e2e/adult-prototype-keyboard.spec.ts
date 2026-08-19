@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 async function focusByKeyboard(page: Page, accessibleName: string) {
   for (let step = 0; step < 20; step += 1) {
@@ -11,13 +12,6 @@ async function focusByKeyboard(page: Page, accessibleName: string) {
 }
 
 test('玩家只用键盘就能选择身份、完成教学并唤起第一张记忆牌', async ({ page }) => {
-  const consoleErrors: string[] = [];
-  const pageErrors: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-
   await page.goto('/');
   await focusByKeyboard(page, '以名校毕业生开始原型');
   await page.keyboard.press('Enter');
@@ -30,11 +24,10 @@ test('玩家只用键盘就能选择身份、完成教学并唤起第一张记�
 
   await page.keyboard.press('Tab');
   expect(await page.locator(':focus').evaluate((element) => element.tagName)).toBe('BUTTON');
-  await expect(page.locator(':focus')).toHaveAccessibleName(/^唤起「.+」$/);
+  await expect(page.locator(':focus')).toHaveAccessibleName(/^唤起.+牌力 \d+，守势 \d+$/);
+  await expect(page.locator(':focus')).toHaveAccessibleDescription(/预计得分\s*\d+\s*对\s*\d+/);
   await page.keyboard.press('Enter');
 
   await expect(page.getByRole('heading', { name: '先看结果，再学下一条' })).toBeVisible();
   await expect(page.getByText(/上一轮 · \d+ : \d+/)).toBeVisible();
-  expect(consoleErrors).toEqual([]);
-  expect(pageErrors).toEqual([]);
 });
