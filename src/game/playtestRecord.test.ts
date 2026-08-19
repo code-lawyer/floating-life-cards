@@ -93,4 +93,11 @@ describe('成人原型试玩客观记录', () => {
     expect(formatPrototypePlaytestRecord(activePrototype)).toBeNull();
     expect(formatPrototypePlaytestRecord(createGame(1))).toBeNull();
   });
+
+  it('不为缺失起手身份的损坏结案状态生成记录', () => {
+    expect(formatPrototypePlaytestRecord({
+      ...makeResolvedPrototype(),
+      startingIdentity: null,
+    })).toBeNull();
+  });
 });

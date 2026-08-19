@@ -18,7 +18,7 @@ npx playwright install chromium
 npm run verify
 ```
 
-`npm run verify` 会依次运行48项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
+`npm run verify` 会依次运行49项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
 
 制作阶段可运行 `npm run analyze:prototype`，穷举三个起手身份在固定合同困局中的合法决策空间。该命令只寻找明显数值死路，不代表真人胜率或乐趣。
 

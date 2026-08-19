@@ -4,7 +4,7 @@ import { App } from './App';
 import { createGame, getGrowthEvent, reduceGame } from './game/game';
 import { saveGame } from './game/persistence';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
-import type { GameState } from './game/types';
+import type { GameState, StartingIdentityId } from './game/types';
 
 function makeDeckState(): GameState {
   let state = reduceGame(createGame(41), { type: 'BEGIN' });
@@ -19,6 +19,18 @@ function makeDeckState(): GameState {
     }
   }
   return state;
+}
+
+function saveResolvedPrototype(
+  identityId: StartingIdentityId,
+  encounterOverrides: Partial<NonNullable<GameState['encounter']>> = {},
+) {
+  const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId });
+  saveGame({
+    ...initial,
+    phase: 'encounter-result',
+    encounter: { ...initial.encounter!, resolved: true, won: false, ...encounterOverrides },
+  });
 }
 
 describe('玩家入口', () => {
@@ -172,12 +184,7 @@ describe('玩家入口', () => {
   });
 
   it('成年困局原型结果页可以用同一身份重新试玩', () => {
-    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'gig-worker' });
-    saveGame({
-      ...initial,
-      phase: 'encounter-result',
-      encounter: { ...initial.encounter!, resolved: true, won: false },
-    });
+    saveResolvedPrototype('gig-worker');
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '用灵活就业者再试一次' }));
@@ -192,12 +199,7 @@ describe('玩家入口', () => {
       configurable: true,
       value: { writeText },
     });
-    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'technical-worker' });
-    saveGame({
-      ...initial,
-      phase: 'encounter-result',
-      encounter: { ...initial.encounter!, progress: 9, resolved: true, won: false },
-    });
+    saveResolvedPrototype('technical-worker', { progress: 9 });
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '复制本局试玩记录' }));
@@ -212,12 +214,7 @@ describe('玩家入口', () => {
       configurable: true,
       value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
     });
-    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
-    saveGame({
-      ...initial,
-      phase: 'encounter-result',
-      encounter: { ...initial.encounter!, resolved: true, won: false },
-    });
+    saveResolvedPrototype('elite-graduate');
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: '复制本局试玩记录' }));
