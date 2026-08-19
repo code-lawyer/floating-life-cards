@@ -36,6 +36,7 @@ previewCardPlay(state, card): CombatPreview | null
 stateDiagram-v2
   [*] --> title
   title --> origin: BEGIN
+  title --> encounter: START_PROTOTYPE / fixed identity and seed
   origin --> origin: REROLL_ORIGIN
   origin --> growth: ACCEPT_ORIGIN
   growth --> growth-result: CHOOSE_GROWTH
@@ -47,6 +48,7 @@ stateDiagram-v2
   encounter --> encounter: REDRAW_HAND / once per encounter
   encounter --> encounter: RECALL_MEMORY / once per encounter, from memory pile
   encounter --> encounter-result: target, round limit, or exhaustion
+  encounter-result --> encounter: RESTART_PROTOTYPE / prototype mode
   encounter-result --> adult-event: CONTINUE_ADVENTURE / scheduled life event
   adult-event --> adult-result: CHOOSE_ADULT_EVENT
   adult-result --> adult-event: CONTINUE_ADULT_EVENT / another event
@@ -88,7 +90,7 @@ stateDiagram-v2
 
 ## 存档策略
 
-存档键为 `floating-life-cards.save.v3`，状态包含显式 `version: 3`。v3加入回忆堆、童年余温和起手身份引用；加载时验证版本、身份ID、牌ID引用及新增困局字段，解析失败或引用不合法直接视为无存档。任何存储异常都会被吞掉，游戏保持可玩。
+存档键为 `floating-life-cards.save.v4`，状态包含显式 `version: 4` 和 `mode: story | prototype`。v4保留回忆堆、童年余温与起手身份引用，并能安全恢复固定成年原型；加载时验证版本、运行模式、身份ID、牌ID引用及困局字段，解析失败或引用不合法直接视为无存档。任何存储异常都会被吞掉，游戏保持可玩。
 
 未来更改状态形状时应新增迁移函数或升级存档键，不能在旧字段上静默改变语义。
 

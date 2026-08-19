@@ -19,6 +19,7 @@
 - PRODUCT.md：产品定位、体验支柱与明确不做的事情。
 - ATTRIBUTE_SYSTEM.md：三项成长倾向、四项境遇资源与五类记忆标签画像。
 - GAME_DESIGN.md：两阶段流程、成长路线、起手身份与成年牌局。
+- ADULT_PROTOTYPE.md：合同困局、固定记忆池、三身份档案与原型验收标准。
 - CONTENT_GUIDE.md：事件、记忆牌、身份和困局的写作与数据规范。
 - TECHNICAL_PLAN.md：从当前 v1 迁移到 v2 的状态、模块与测试计划。
 - ROADMAP.md：开发顺序、验收标准和仍待讨论的问题。

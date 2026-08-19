@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { approachRelation, canChooseAdultChoice, createGame, getAdultEvent, getGrowthEvent, previewCardPlay, reduceGame } from './game';
+import { approachRelation, canChooseAdultChoice, createGame, getAdultEvent, getChapter, getGrowthEvent, getWorldPower, previewCardPlay, reduceGame } from './game';
 import type { GameState } from './types';
 
 function acceptOrigin(seed = 12345): GameState {
@@ -27,6 +27,46 @@ describe('浮生牌局规则模块', () => {
     const first = growUp(20260812);
     const second = growUp(20260812);
     expect(first).toEqual(second);
+  });
+
+  it('可用固定身份直接开始可重复的成年困局原型', () => {
+    const action = { type: 'START_PROTOTYPE', identityId: 'technical-worker' } as const;
+    const first = reduceGame(createGame(1), action);
+    const second = reduceGame(createGame(999), action);
+
+    expect(first).toEqual(second);
+    expect(first.phase).toBe('encounter');
+    expect(first.startingIdentity).toBe('technical-worker');
+    expect(first.cards).toHaveLength(10);
+    expect(first.selectedDeck).toHaveLength(8);
+    expect(first.encounter?.hand).toHaveLength(4);
+    expect(getChapter(first)?.id).toBe('contract-terms');
+  });
+
+  it('合同困局公开签字倒计时，并按轮次提高世界强度', () => {
+    const state = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
+    const firstRoundPower = getWorldPower(state)!;
+    const fourthRound = { ...state, encounter: { ...state.encounter!, round: 4 } };
+
+    expect(getChapter(state)?.rule?.title).toBe('签字倒计时');
+    expect(getChapter(state)?.rule?.description).toContain('世界强度 +1');
+    expect(getWorldPower(fourthRound)).toBe(firstRoundPower + 3);
+  });
+
+  it('原型结果可以用同一身份和固定状态重新开始', () => {
+    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'gig-worker' });
+    const finished = {
+      ...initial,
+      phase: 'encounter-result' as const,
+      encounter: { ...initial.encounter!, resolved: true },
+    };
+    const restarted = reduceGame(finished, { type: 'RESTART_PROTOTYPE' });
+
+    expect(initial.mode).toBe('prototype');
+    expect(restarted).toEqual(initial);
+    const story = createGame(1);
+    expect(story.mode).toBe('story');
+    expect(reduceGame(story, { type: 'RESTART_PROTOTYPE' })).toBe(story);
   });
 
   it('完成十四年成长并留下十五张牌', () => {

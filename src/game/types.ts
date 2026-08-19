@@ -16,6 +16,7 @@ export interface StartingIdentity {
 }
 
 export type ResourceKey = 'heart' | 'money' | 'bonds' | 'pressure';
+export type GameMode = 'story' | 'prototype';
 export type Phase =
   | 'title'
   | 'origin'
@@ -103,6 +104,13 @@ export interface Intent {
   text: string;
 }
 
+export interface EncounterRule {
+  id: string;
+  title: string;
+  description: string;
+  effect: { kind: 'escalating-world'; amount: number };
+}
+
 export interface Chapter {
   id: string;
   year: number;
@@ -111,6 +119,7 @@ export interface Chapter {
   premise: string;
   target: number;
   rounds: number;
+  rule?: EncounterRule;
   intents: Intent[];
   victory: string;
   setback: string;
@@ -244,7 +253,8 @@ export interface Ending {
 }
 
 export interface GameState {
-  version: 3;
+  version: 4;
+  mode: GameMode;
   seed: number;
   rng: number;
   phase: Phase;
@@ -277,6 +287,8 @@ export type GameAction =
   | { type: 'CONTINUE_GROWTH' }
   | { type: 'TOGGLE_DECK'; cardId: string }
   | { type: 'AUTO_DECK' }
+  | { type: 'START_PROTOTYPE'; identityId: StartingIdentityId }
+  | { type: 'RESTART_PROTOTYPE' }
   | { type: 'BEGIN_ADVENTURE' }
   | { type: 'PLAY_CARD'; cardId: string; judgeText?: string }
   | { type: 'REDRAW_HAND' }

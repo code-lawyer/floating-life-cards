@@ -39,6 +39,19 @@ describe('玩家入口', () => {
     expect(screen.getByRole('heading', { name: '克制与“同型”' })).toBeInTheDocument();
   });
 
+  it('标题页可选择身份直接试玩公开规则的成年困局原型', () => {
+    render(<App />);
+    expect(screen.getByRole('button', { name: '以名校毕业生开始原型' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '以职校技术员开始原型' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '以灵活就业者开始原型' })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '以职校技术员开始原型' }));
+    expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
+    expect(screen.getByText('职校技术员')).toBeInTheDocument();
+    expect(screen.getByText('签字倒计时')).toBeInTheDocument();
+    expect(screen.getByText(/从第二轮起，每过一轮/)).toBeInTheDocument();
+  });
+
   it('设置先展示玩家叙事状态，再按需展开开发者接入', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: '登记出生' }));
@@ -124,6 +137,21 @@ describe('玩家入口', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: '跳过教学' }));
     expect(screen.getByRole('button', { name: '换一手（免费）' })).toBeEnabled();
+  });
+
+  it('成年困局原型结果页可以用同一身份重新试玩', () => {
+    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'gig-worker' });
+    saveGame({
+      ...initial,
+      phase: 'encounter-result',
+      encounter: { ...initial.encounter!, resolved: true, won: false },
+    });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '用灵活就业者再试一次' }));
+    expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
+    expect(screen.getByText('第 1 / 5 轮')).toBeInTheDocument();
+    expect(screen.getByText('灵活就业者')).toBeInTheDocument();
   });
 
   it('压力变化按利害关系而不是数学正负着色', () => {

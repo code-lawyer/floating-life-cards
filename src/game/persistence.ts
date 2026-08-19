@@ -1,7 +1,7 @@
 import type { GameState, StartingIdentityId } from './types';
 import { getStartingIdentity } from './identities';
 
-const SAVE_KEY = 'floating-life-cards.save.v3';
+const SAVE_KEY = 'floating-life-cards.save.v4';
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -23,7 +23,7 @@ function isValidEncounter(value: unknown, cardIds: Set<string>): boolean {
 function isValidGameState(value: unknown): value is GameState {
   if (!value || typeof value !== 'object') return false;
   const state = value as Record<string, unknown>;
-  if (state.version !== 3 || typeof state.seed !== 'number' || typeof state.phase !== 'string' || !Array.isArray(state.cards)) return false;
+  if (state.version !== 4 || (state.mode !== 'story' && state.mode !== 'prototype') || typeof state.seed !== 'number' || typeof state.phase !== 'string' || !Array.isArray(state.cards)) return false;
   if (!('startingIdentity' in state)) return false;
   if (state.startingIdentity !== null && (typeof state.startingIdentity !== 'string' || !getStartingIdentity(state.startingIdentity as StartingIdentityId))) return false;
   if (!state.cards.every((card) => Boolean(card) && typeof card === 'object' && typeof (card as Record<string, unknown>).id === 'string')) return false;

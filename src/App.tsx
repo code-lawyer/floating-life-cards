@@ -13,10 +13,11 @@ import {
   reduceGame,
 } from './game/game';
 import { requestJudgeNarration } from './game/judge';
+import { getStartingIdentity, STARTING_IDENTITIES } from './game/identities';
 import { clearSave, loadGame, saveGame } from './game/persistence';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
 import type { ReactNode } from 'react';
-import type { Approach, AdultMark, GameState, LifeCard, ResourceKey } from './game/types';
+import type { Approach, AdultMark, GameState, LifeCard, ResourceKey, StartingIdentityId } from './game/types';
 
 const RESOURCE_META: Record<ResourceKey, { label: string; sign: string; inverse?: boolean }> = {
   heart: { label: '心气', sign: '心' },
@@ -115,7 +116,11 @@ function AgeRail({ age, label }: { age: number | string; label: string }) {
   );
 }
 
-function TitleScreen({ onStart, onGuide }: { onStart: () => void; onGuide: () => void }) {
+function TitleScreen({ onStart, onGuide, onPrototype }: {
+  onStart: () => void;
+  onGuide: () => void;
+  onPrototype: (identityId: StartingIdentityId) => void;
+}) {
   return (
     <main className="title-screen">
       <div className="title-screen__register" aria-hidden="true">出生登记 / 未定级 / 普通人</div>
@@ -132,6 +137,17 @@ function TitleScreen({ onStart, onGuide }: { onStart: () => void; onGuide: () =>
         <button className="text-button" onClick={onGuide}>先读玩法说明</button>
       </div>
       <p className="title-screen__save-note">进度自动保存在本机 · 单局约 35–50 分钟</p>
+      <section className="prototype-entry" aria-labelledby="prototype-entry-title">
+        <header><span>制作中 · 规则试玩</span><h2 id="prototype-entry-title">直接进入成年牌局</h2></header>
+        <p>跳过童年，用同一副固定记忆比较三个起手身份。此入口只用于验证核心玩法。</p>
+        <div>
+          {STARTING_IDENTITIES.map((identity) => (
+            <button key={identity.id} onClick={() => onPrototype(identity.id)} aria-label={`以${identity.title}开始原型`}>
+              <b>{identity.title}</b><span>{identity.passiveText}</span>
+            </button>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
@@ -316,6 +332,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
 }) {
   const chapter = getChapter(state)!;
   const encounter = state.encounter!;
+  const identity = getStartingIdentity(state.startingIdentity);
   const [pendingCard, setPendingCard] = useState<string | null>(null);
   const [tutorialStep, setTutorialStep] = useState<0 | 1 | 2>(() => encounter.records.length === 1 ? 2 : 0);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
@@ -360,6 +377,16 @@ function EncounterScreen({ state, dispatch, endpoint }: {
         </div>
       </header>
       <section className="encounter-premise"><span>局面</span><p>{chapter.premise}</p></section>
+      {identity && (
+        <section className="identity-line" aria-label="起手身份">
+          <span>起手身份</span><b>{identity.title}</b><p>{identity.passiveText}</p>
+        </section>
+      )}
+      {chapter.rule && (
+        <section className="encounter-rule" aria-label="本局规则">
+          <span>本局规则</span><b>{chapter.rule.title}</b><p>{chapter.rule.description}</p>
+        </section>
+      )}
       <section className="climate-line">
         <span>时代气候</span>
         <b>{encounter.climate.title}</b>
@@ -495,6 +522,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
 function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
   const chapter = getChapter(state)!;
   const encounter = state.encounter!;
+  const identity = getStartingIdentity(state.startingIdentity);
   const exhausted = state.resources.heart <= 0;
   const hasPendingLife = state.adultSchedule.some((slot) => slot.afterChapter === encounter.chapterIndex && !state.adultEventsResolved.includes(slot.eventId));
   const finalChapter = encounter.chapterIndex === CHAPTERS.length - 1;
@@ -516,10 +544,20 @@ function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch
             </div>
           ))}
         </div>
-        {!finalChapter && !exhausted && <p className="recovery-note">进入下一场牌局前：基础恢复 2 点心气、降低 1 点压力；人生状态可能改变恢复量。</p>}
-        <button className="primary-button" onClick={() => dispatch({ type: 'CONTINUE_ADVENTURE' })}>
-          {exhausted ? '翻到人生档案末页' : hasPendingLife ? '离开牌桌，继续生活' : finalChapter ? '翻到人生档案末页' : `继续到 ${CHAPTERS[encounter.chapterIndex + 1]!.year} 岁`}
-        </button>
+        {state.mode === 'prototype' && identity ? (
+          <div className="prototype-result-actions">
+            <p>制作原型使用固定种子与牌组；重新开始后，唯一变量仍是你的出牌选择。</p>
+            <button className="primary-button" onClick={() => dispatch({ type: 'RESTART_PROTOTYPE' })}>用{identity.title}再试一次</button>
+            <button className="text-button" onClick={() => dispatch({ type: 'RESTART', seed: state.seed })}>返回标题，换一个身份</button>
+          </div>
+        ) : (
+          <>
+            {!finalChapter && !exhausted && <p className="recovery-note">进入下一场牌局前：基础恢复 2 点心气、降低 1 点压力；人生状态可能改变恢复量。</p>}
+            <button className="primary-button" onClick={() => dispatch({ type: 'CONTINUE_ADVENTURE' })}>
+              {exhausted ? '翻到人生档案末页' : hasPendingLife ? '离开牌桌，继续生活' : finalChapter ? '翻到人生档案末页' : `继续到 ${CHAPTERS[encounter.chapterIndex + 1]!.year} 岁`}
+            </button>
+          </>
+        )}
       </section>
     </main>
   );
@@ -872,7 +910,7 @@ export function App() {
       <a className="skip-link" href="#game-content">跳到游戏内容</a>
       {showChrome && <AppHeader state={state} onReset={reset} onGuide={openGuide} endpoint={endpoint} setEndpoint={setEndpoint} />}
       <div id="game-content">
-        {state.phase === 'title' && <TitleScreen onStart={() => dispatch({ type: 'BEGIN' })} onGuide={openGuide} />}
+        {state.phase === 'title' && <TitleScreen onStart={() => dispatch({ type: 'BEGIN' })} onGuide={openGuide} onPrototype={(identityId) => dispatch({ type: 'START_PROTOTYPE', identityId })} />}
         {state.phase === 'origin' && <OriginScreen state={state} dispatch={dispatch} />}
         {state.phase === 'growth' && <GrowthScreen state={state} dispatch={dispatch} />}
         {state.phase === 'growth-result' && <GrowthResultScreen state={state} dispatch={dispatch} />}

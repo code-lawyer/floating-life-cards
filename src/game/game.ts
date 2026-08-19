@@ -1,5 +1,6 @@
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
 import { getIdentityCardBonus, identityMakesFirstRedrawFree } from './identities';
+import { PROTOTYPE_CARDS, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
 import { shuffle, takeOne } from './rng';
 import type {
   Approach,
@@ -15,6 +16,7 @@ import type {
   Intent,
   LifeCard,
   Resources,
+  StartingIdentityId,
 } from './types';
 
 const MAX_RESOURCE = 9;
@@ -22,7 +24,8 @@ const HAND_SIZE = 4;
 
 export function createGame(seed = Date.now() >>> 0): GameState {
   return {
-    version: 3,
+    version: 4,
+    mode: 'story',
     seed,
     rng: seed || 0x6d2b79f5,
     phase: 'title',
@@ -68,8 +71,12 @@ export function canChooseAdultChoice(state: GameState, choice: AdultEventChoice)
 
 export function getWorldPower(state: GameState): number | null {
   if (!state.encounter) return null;
+  const rule = getChapter(state)?.rule;
+  const rulePower = rule?.effect.kind === 'escalating-world'
+    ? Math.max(0, state.encounter.round - 1) * rule.effect.amount
+    : 0;
   return Math.max(1, state.encounter.currentIntent.power + (state.encounter.climate.worldPower ?? 0)
-    + markAmount(state, 'world') + (state.resources.money <= 1 ? 1 : 0));
+    + rulePower + markAmount(state, 'world') + (state.resources.money <= 1 ? 1 : 0));
 }
 
 export function canBeginAdventure(state: GameState): boolean {
@@ -179,6 +186,20 @@ function startEncounter(state: GameState, chapterIndex: number): GameState {
       { stamp: `${chapter.year} 岁`, title: chapter.title, body: chapter.premise, tone: 'plain' },
     ],
   };
+}
+
+function startPrototype(identityId: StartingIdentityId): GameState {
+  const prototype = createGame(PROTOTYPE_SEED);
+  return startEncounter({
+    ...prototype,
+    mode: 'prototype',
+    resources: { heart: 8, money: 5, bonds: 5, pressure: 2 },
+    traits: { insight: 4, nerve: 4, empathy: 4 },
+    startingIdentity: identityId,
+    cards: PROTOTYPE_CARDS,
+    selectedDeck: PROTOTYPE_DECK_IDS,
+    journal: [{ stamp: '24 岁 · 原型', title: '合同上没有写的事', body: '跳过童年流程，使用固定记忆与身份进入同一场制作验证。', tone: 'plain' }],
+  }, 0);
 }
 
 function buildAdultSchedule(state: GameState): [GameState['adultSchedule'], number] {
@@ -366,6 +387,14 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
     }
     case 'AUTO_DECK':
       return state.phase === 'deck' ? { ...state, selectedDeck: autoSelect(state.cards) } : state;
+    case 'START_PROTOTYPE': {
+      if (state.phase !== 'title') return state;
+      return startPrototype(action.identityId);
+    }
+    case 'RESTART_PROTOTYPE':
+      return state.mode === 'prototype' && state.phase === 'encounter-result' && state.startingIdentity
+        ? startPrototype(state.startingIdentity)
+        : state;
     case 'BEGIN_ADVENTURE': {
       if (!canBeginAdventure(state)) return state;
       let adultSchedule: GameState['adultSchedule'];
