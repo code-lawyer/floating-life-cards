@@ -50,6 +50,8 @@ v2 尚未证明的最大风险是：
 - PIPELINE.md：从预制作到发布的完整流程和每阶段退出条件。
 - BACKLOG.md：按风险和依赖排序的执行任务，以及下一个开发周期。
 - QUALITY_PLAN.md：自动测试、真人试玩、平衡指标和发布质量门槛。
+- PROTOTYPE_UI_VALIDATION.md：成年困局的桌面、移动、可访问性与浏览器闭环证据。
+- PLAYTEST_TEMPLATE.md：3–5名目标玩家的现场规则试玩记录表。
 - WORKING_AGREEMENT.md：双方角色、决策权限和汇报方式。
 - ../v2/README.md：v2 产品、玩法、属性、内容与技术设计。
 

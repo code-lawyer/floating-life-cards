@@ -336,6 +336,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
   const [pendingCard, setPendingCard] = useState<string | null>(null);
   const [tutorialStep, setTutorialStep] = useState<0 | 1 | 2>(() => encounter.records.length === 1 ? 2 : 0);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
+  const handZoneRef = useRef<HTMLElement | null>(null);
   const latest = encounter.records.at(-1);
   const handCards = encounter.hand.map((id) => state.cards.find((card) => card.id === id)!).filter(Boolean);
   const memoryCards = encounter.memoryPile.map((id) => state.cards.find((card) => card.id === id)!).filter(Boolean);
@@ -343,6 +344,11 @@ function EncounterScreen({ state, dispatch, endpoint }: {
   const worldPower = getWorldPower(state) ?? encounter.currentIntent.power;
   const firstDuel = encounter.chapterIndex === 0 && encounter.records.length <= 1;
   const tutorialActive = firstDuel && !tutorialDismissed;
+  useEffect(() => {
+    if (tutorialActive && tutorialStep === 1 && encounter.records.length === 0) {
+      handZoneRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    }
+  }, [encounter.records.length, tutorialActive, tutorialStep]);
   const recommendedCard = handCards.reduce<LifeCard | null>((best, card) => {
     if (!best) return card;
     return previewCardPlay(state, card)!.playerScore > previewCardPlay(state, best)!.playerScore ? card : best;
@@ -423,9 +429,9 @@ function EncounterScreen({ state, dispatch, endpoint }: {
           <blockquote>征兆：{encounter.currentIntent.tell}</blockquote>
           <div className="world-power">当前强度 <b>{worldPower}</b></div>
         </section>
-        <section className={`hand-zone ${tutorialActive && tutorialStep === 0 ? 'hand-zone--waiting' : ''}`}>
+        <section ref={handZoneRef} className={`hand-zone ${tutorialActive && tutorialStep === 0 ? 'hand-zone--waiting' : ''}`} aria-labelledby="hand-zone-title">
           <div className="hand-zone__header">
-            <div><p className="eyebrow">你的手牌</p><h2>这一次，你拿哪段自己来回答？</h2></div>
+            <div><p className="eyebrow">你的手牌</p><h2 id="hand-zone-title">这一次，你拿哪段自己来回答？</h2></div>
             {endpoint && <span className="judge-live">远程叙事裁判已接通</span>}
           </div>
           {latest && (

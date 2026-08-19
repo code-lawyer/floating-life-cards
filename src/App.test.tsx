@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { createGame, getGrowthEvent, reduceGame } from './game/game';
 import { saveGame } from './game/persistence';
@@ -94,9 +94,13 @@ describe('玩家入口', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: '先看世界出了什么' })).toBeInTheDocument();
     expect(screen.queryByText('建议先出这张')).not.toBeInTheDocument();
+    const handZone = screen.getByRole('region', { name: '这一次，你拿哪段自己来回答？' });
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(handZone, 'scrollIntoView', { value: scrollIntoView });
     fireEvent.click(screen.getByRole('button', { name: '去看我的手牌' }));
     expect(screen.getByRole('heading', { name: '先打一张有把握的牌' })).toBeInTheDocument();
     expect(screen.getByText('建议先出这张')).toBeInTheDocument();
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
   });
 
   it('刷新首轮结算页时恢复到教学结果步骤', () => {
