@@ -4,19 +4,21 @@
 
 ## 运行
 
-需要 Node.js 20 或更高版本。
+需要 Node.js 22.12 或更高版本。
 
 ```bash
 npm install
 npm run dev
 ```
 
-浏览器打开终端显示的本地地址。生产构建与测试：
+浏览器打开终端显示的本地地址。首次运行浏览器端到端测试需要安装受控Chromium：
 
 ```bash
-npm run build
-npm test
+npx playwright install chromium
+npm run verify
 ```
+
+`npm run verify` 会依次运行42项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
 
 游戏不依赖后端，默认离线可玩，进度自动存入浏览器 `localStorage`。
 
@@ -64,10 +66,12 @@ src/
     types.ts         共享领域类型
   App.tsx            阶段页面和玩家交互
   styles.css         纯文字档案视觉系统
+e2e/                 Playwright玩家旅程
 docs/
   GAME_DESIGN.md
   ARCHITECTURE.md
   LLM_JUDGE.md
 scripts/
   judge-server.mjs  本地安全 LLM 中转示例
+playwright.config.ts 浏览器测试与开发服务器编排
 ```

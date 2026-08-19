@@ -4,7 +4,7 @@
 
 - React + TypeScript + Vite；
 - 无路由、无后端、无运行时 UI 库；
-- Vitest + Testing Library；
+- Vitest + Testing Library + Playwright；
 - 浏览器 `localStorage` 版本化存档；
 - 可注入的远程叙事裁判端点。
 
@@ -110,4 +110,6 @@ stateDiagram-v2
 - 存档测试覆盖成功恢复、清除、损坏 JSON 与版本不符；
 - 入口组件测试覆盖标题到出生档案；
 - 生产构建执行 TypeScript 严格检查；
-- 真实 Chromium 验收覆盖标题、出身、成长、成年组牌、世界牌局和结案，并检查错误覆盖层、控制台、交互快照和移动视口。
+- Playwright自动覆盖成人原型的桌面完整闭环、390像素童年余温和纯键盘首轮，并捕获页面与控制台错误；
+- 真实 Chromium 人工验收覆盖标题、出身、成长、成年组牌、世界牌局和结案，并检查错误覆盖层、控制台、交互快照和移动视口；
+- `npm run verify` 是本地统一质量门；GitHub Actions使用同一命令，远端失败证据保留为Playwright报告。

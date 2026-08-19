@@ -72,11 +72,12 @@ function LifeMarkTag({ mark, verbose = false }: { mark: AdultMark; verbose?: boo
   );
 }
 
-function CardFace({ card, selected, disabled, onClick, compact = false, experience = 0, upgraded = false }: {
+function CardFace({ card, selected, disabled, onClick, actionLabel, compact = false, experience = 0, upgraded = false }: {
   card: LifeCard;
   selected?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  actionLabel?: string;
   compact?: boolean;
   experience?: number;
   upgraded?: boolean;
@@ -99,7 +100,7 @@ function CardFace({ card, selected, disabled, onClick, compact = false, experien
   );
   if (onClick) {
     return (
-      <button className={`life-card ${selected ? 'life-card--selected' : ''}`} disabled={disabled} onClick={onClick} aria-pressed={selected}>
+      <button className={`life-card ${selected ? 'life-card--selected' : ''}`} disabled={disabled} onClick={onClick} aria-label={actionLabel} aria-pressed={selected}>
         {content}
       </button>
     );
@@ -500,6 +501,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
                   <CardFace
                     card={card}
                     compact
+                    actionLabel={`唤起「${card.title}」`}
                     disabled={Boolean(pendingCard) || (tutorialActive && tutorialStep === 0)}
                     onClick={() => void play(card)}
                     experience={state.cardExperience[card.id] ?? 0}
