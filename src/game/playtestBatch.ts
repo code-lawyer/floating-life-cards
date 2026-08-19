@@ -25,8 +25,12 @@ function readField(markdown: string, label: string): string {
   return markdown.match(new RegExp(`^- ${label}：(.+)$`, 'm'))?.[1].trim() ?? '';
 }
 
-function readRoundCount(markdown: string): number {
-  return Number(readField(markdown, '回合').split('/')[0].trim());
+function readRoundCount(markdown: string): number | null {
+  const match = readField(markdown, '回合').match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (!match) return null;
+  const played = Number(match[1]);
+  const limit = Number(match[2]);
+  return played >= 1 && limit >= played ? played : null;
 }
 
 export function validatePlaytestBatch(inputs: PlaytestMarkdownRecord[]): PlaytestBatchValidation {
@@ -35,7 +39,7 @@ export function validatePlaytestBatch(inputs: PlaytestMarkdownRecord[]): Playtes
     fileName,
     id: readField(markdown, '匿名记录编号（主持人填写）'),
     identity: readField(markdown, '试玩身份'),
-    rounds: readRoundCount(markdown),
+    rounds: readRoundCount(markdown) ?? 0,
   }));
   const errors: string[] = [];
   if (objectiveRecords.length !== 3) {
@@ -65,8 +69,12 @@ export function validatePlaytestBatch(inputs: PlaytestMarkdownRecord[]): Playtes
   for (const { fileName, markdown } of objectiveRecords) {
     const declaredRounds = readRoundCount(markdown);
     const factRows = markdown.match(/^\|\s*\d+\s*\|.*$/gm) ?? [];
-    if (Number.isFinite(declaredRounds) && factRows.length !== declaredRounds) {
+    if (declaredRounds === null) {
+      errors.push(`${fileName}：缺少有效的回合声明。`);
+    } else if (factRows.length !== declaredRounds) {
       errors.push(`${fileName}：声明${declaredRounds}回合，但逐轮事实只有${factRows.length}行。`);
+    } else if (factRows.some((row, index) => Number(row.split('|')[1].trim()) !== index + 1)) {
+      errors.push(`${fileName}：逐轮事实编号必须从1连续到${declaredRounds}。`);
     }
     for (const [index, row] of factRows.entries()) {
       const [round, intent, memory, score, outcome] = row.split('|').slice(1, -1).map((cell) => cell.trim());
