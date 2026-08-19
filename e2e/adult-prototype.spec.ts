@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
 
 test('玩家能以职校技术员完成合同困局、复制客观记录并用同一身份重试', async ({ context, page }) => {
@@ -30,7 +31,17 @@ test('玩家能以职校技术员完成合同困局、复制客观记录并用�
   expect(copiedRecord).toContain('# 《浮生牌局》成年困局试玩客观记录');
   expect(copiedRecord).toContain('- 试玩身份：职校技术员');
   expect(copiedRecord).toContain('不包含试玩者姓名、联系方式或访谈回答');
+  expect(copiedRecord).toContain('- 构建版本：1.4.0');
   expect(copiedRecord).toMatch(/\| 1 \| .+ \| .+ \| \d+ : \d+ \| (推进|僵持|受挫) \|/);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('link', { name: '下载本局试玩记录' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('浮生牌局-职校技术员-试玩记录.md');
+  const downloadedPath = await download.path();
+  expect(downloadedPath).not.toBeNull();
+  const downloadedRecord = await readFile(downloadedPath!, 'utf8');
+  expect(downloadedRecord.replace(/\r\n/g, '\n')).toBe(copiedRecord.replace(/\r\n/g, '\n'));
 
   await retry.click();
   await expect(page.getByRole('region', { name: '起手身份' })).toContainText('职校技术员');

@@ -541,17 +541,17 @@ function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch
   const chapter = getChapter(state)!;
   const encounter = state.encounter!;
   const identity = getStartingIdentity(state.startingIdentity);
+  const playtestRecord = formatPrototypePlaytestRecord(state);
   const exhausted = state.resources.heart <= 0;
   const hasPendingLife = state.adultSchedule.some((slot) => slot.afterChapter === encounter.chapterIndex && !state.adultEventsResolved.includes(slot.eventId));
   const finalChapter = encounter.chapterIndex === CHAPTERS.length - 1;
   const copyPlaytestRecord = async () => {
-    const record = formatPrototypePlaytestRecord(state);
-    if (!record || !navigator.clipboard) {
+    if (!playtestRecord || !navigator.clipboard) {
       setRecordCopyStatus('failed');
       return;
     }
     try {
-      await navigator.clipboard.writeText(record);
+      await navigator.clipboard.writeText(playtestRecord);
       setRecordCopyStatus('copied');
     } catch {
       setRecordCopyStatus('failed');
@@ -580,6 +580,13 @@ function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch
             <p>制作原型使用固定种子与牌组；重新开始后，唯一变量仍是你的出牌选择。</p>
             <button className="primary-button" onClick={() => dispatch({ type: 'RESTART_PROTOTYPE' })}>用{identity.title}再试一次</button>
             <button className="text-button" onClick={() => void copyPlaytestRecord()}>复制本局试玩记录</button>
+            {playtestRecord && (
+              <a
+                className="text-button download-link"
+                download={`浮生牌局-${identity.title}-试玩记录.md`}
+                href={`data:text/markdown;charset=utf-8,${encodeURIComponent(playtestRecord)}`}
+              >下载本局试玩记录</a>
+            )}
             <button className="text-button" onClick={() => dispatch({ type: 'RESTART', seed: state.seed })}>返回标题，换一个身份</button>
             {recordCopyStatus !== 'idle' && (
               <p role="status">{recordCopyStatus === 'copied'

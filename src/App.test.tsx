@@ -222,6 +222,17 @@ describe('玩家入口', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('未能访问剪贴板');
   });
 
+  it('不依赖剪贴板也能下载带版本的本局试玩记录', () => {
+    saveResolvedPrototype('gig-worker', { progress: 12, won: true });
+    render(<App />);
+
+    const download = screen.getByRole('link', { name: '下载本局试玩记录' });
+    expect(download).toHaveAttribute('download', '浮生牌局-灵活就业者-试玩记录.md');
+    const href = download.getAttribute('href')!;
+    expect(decodeURIComponent(href)).toContain('- 构建版本：1.4.0');
+    expect(decodeURIComponent(href)).toContain('- 试玩身份：灵活就业者');
+  });
+
   it('压力变化按利害关系而不是数学正负着色', () => {
     expect(resourceDeltaTone('pressure', 1)).toBe('negative');
     expect(resourceDeltaTone('pressure', -1)).toBe('positive');

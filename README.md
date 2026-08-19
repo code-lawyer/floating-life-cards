@@ -18,11 +18,21 @@ npx playwright install chromium
 npm run verify
 ```
 
-`npm run verify` 会依次运行49项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
+`npm run verify` 会依次运行50项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
 
 制作阶段可运行 `npm run analyze:prototype`，穷举三个起手身份在固定合同困局中的合法决策空间。该命令只寻找明显数值死路，不代表真人胜率或乐趣。
 
 游戏不依赖后端，默认离线可玩，进度自动存入浏览器 `localStorage`。
+
+## 局域网真人试玩
+
+主持人在项目目录运行：
+
+```powershell
+npm run playtest
+```
+
+命令会先生成生产构建，再显示本机与同一局域网可访问的地址。局域网手机若无法使用剪贴板，可在结案页直接下载带 `1.4.0` 构建版本的Markdown记录。完整主持流程见 [docs/production/PLAYTEST_RUNBOOK.md](./docs/production/PLAYTEST_RUNBOOK.md)。
 
 ## 玩法速览
 

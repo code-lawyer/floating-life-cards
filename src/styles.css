@@ -119,6 +119,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 }
 
 .text-button:hover { color: var(--blue); }
+.download-link { display: inline-flex; align-items: center; color: inherit; text-decoration: none; }
 
 .button-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 38px; }
 

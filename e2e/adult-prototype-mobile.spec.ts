@@ -2,7 +2,7 @@ import { expect, test } from './fixtures';
 
 test.use({ viewport: { width: 390, height: 844 } });
 
-test('390像素玩家能进入灵活就业者困局并用童年余温召回记忆', async ({ page }) => {
+test('390像素玩家能用童年余温完成困局并在结案下载记录', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('button', { name: '以名校毕业生开始原型' })).toBeVisible();
   await expect(page.getByRole('button', { name: '以职校技术员开始原型' })).toBeVisible();
@@ -30,5 +30,12 @@ test('390像素玩家能进入灵活就业者困局并用童年余温召回记�
   await expect(warmth.getByRole('status')).toContainText('童年余温已用');
   await expect(warmth).toContainText(`「${recalledTitle}」`);
   await expect(warmth).toContainText(/\d+ 岁/);
+
+  const download = page.getByRole('link', { name: '下载本局试玩记录' });
+  for (let round = 1; round < 5 && !await download.isVisible(); round += 1) {
+    await hand.getByRole('button', { name: /^唤起/ }).first().click();
+  }
+  await expect(download).toBeVisible();
+  await expect(download).toHaveAttribute('download', '浮生牌局-灵活就业者-试玩记录.md');
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 390);
 });
