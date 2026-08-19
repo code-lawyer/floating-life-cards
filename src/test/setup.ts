@@ -5,6 +5,7 @@ import { cleanup } from '@testing-library/react';
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true });

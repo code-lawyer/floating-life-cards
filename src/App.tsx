@@ -344,11 +344,14 @@ function EncounterScreen({ state, dispatch, endpoint }: {
   const worldPower = getWorldPower(state) ?? encounter.currentIntent.power;
   const firstDuel = encounter.chapterIndex === 0 && encounter.records.length <= 1;
   const tutorialActive = firstDuel && !tutorialDismissed;
+  const showingHandTutorial = tutorialActive && tutorialStep === 1 && encounter.records.length === 0;
   useEffect(() => {
-    if (tutorialActive && tutorialStep === 1 && encounter.records.length === 0) {
-      handZoneRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-    }
-  }, [encounter.records.length, tutorialActive, tutorialStep]);
+    if (!showingHandTutorial || !handZoneRef.current) return;
+    const handZone = handZoneRef.current;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    handZone.focus({ preventScroll: true });
+    handZone.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+  }, [showingHandTutorial]);
   const recommendedCard = handCards.reduce<LifeCard | null>((best, card) => {
     if (!best) return card;
     return previewCardPlay(state, card)!.playerScore > previewCardPlay(state, best)!.playerScore ? card : best;
@@ -406,7 +409,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
           <div className="duel-coach__actions"><button className="text-button" onClick={() => setTutorialDismissed(true)}>跳过教学</button><button className="primary-button" onClick={() => setTutorialStep(1)}>去看我的手牌</button></div>
         </section>
       )}
-      {tutorialActive && tutorialStep === 1 && encounter.records.length === 0 && recommendedCard && (
+      {showingHandTutorial && recommendedCard && (
         <section className="duel-coach" aria-labelledby="duel-coach-title">
           <span>第一次上桌 · 第二步</span>
           <div><h2 id="duel-coach-title">先打一张有把握的牌</h2><p>我替你标出了「{recommendedCard.title}」。它预计能打出 <b>{previewCardPlay(state, recommendedCard)!.playerScore}</b> 分，对上世界的 <b>{worldPower}</b> 分。你可以按推荐出牌，也可以自己选。</p></div>
@@ -429,7 +432,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
           <blockquote>征兆：{encounter.currentIntent.tell}</blockquote>
           <div className="world-power">当前强度 <b>{worldPower}</b></div>
         </section>
-        <section ref={handZoneRef} className={`hand-zone ${tutorialActive && tutorialStep === 0 ? 'hand-zone--waiting' : ''}`} aria-labelledby="hand-zone-title">
+        <section ref={handZoneRef} className={`hand-zone ${tutorialActive && tutorialStep === 0 ? 'hand-zone--waiting' : ''}`} aria-labelledby="hand-zone-title" tabIndex={-1}>
           <div className="hand-zone__header">
             <div><p className="eyebrow">你的手牌</p><h2 id="hand-zone-title">这一次，你拿哪段自己来回答？</h2></div>
             {endpoint && <span className="judge-live">远程叙事裁判已接通</span>}

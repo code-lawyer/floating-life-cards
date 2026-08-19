@@ -100,7 +100,32 @@ describe('玩家入口', () => {
     fireEvent.click(screen.getByRole('button', { name: '去看我的手牌' }));
     expect(screen.getByRole('heading', { name: '先打一张有把握的牌' })).toBeInTheDocument();
     expect(screen.getByText('建议先出这张')).toBeInTheDocument();
+    expect(handZone).toHaveFocus();
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+  });
+
+  it('减少动态效果时直接定位手牌而不执行平滑滚动', () => {
+    vi.stubGlobal('matchMedia', vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })));
+    const encounter = reduceGame(makeDeckState(), { type: 'BEGIN_ADVENTURE' });
+    saveGame(encounter);
+    render(<App />);
+    const handZone = screen.getByRole('region', { name: '这一次，你拿哪段自己来回答？' });
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(handZone, 'scrollIntoView', { value: scrollIntoView });
+
+    fireEvent.click(screen.getByRole('button', { name: '去看我的手牌' }));
+
+    expect(handZone).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
   });
 
   it('刷新首轮结算页时恢复到教学结果步骤', () => {
