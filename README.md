@@ -18,7 +18,7 @@ npx playwright install chromium
 npm run verify
 ```
 
-`npm run verify` 会依次运行44项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
+`npm run verify` 会依次运行48项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
 
 制作阶段可运行 `npm run analyze:prototype`，穷举三个起手身份在固定合同困局中的合法决策空间。该命令只寻找明显数值死路，不代表真人胜率或乐趣。
 
@@ -63,6 +63,7 @@ src/
     content.ts       成长事件、15 个成年事件、卡牌原型与成年章节
     game.ts          唯一游戏规则模块与状态机
     judge.ts         本地 / 远程叙事裁判适配器
+    playtestRecord.ts 成人原型匿名试玩记录格式化
     persistence.ts   版本化本地存档
     rng.ts           可复现随机数
     types.ts         共享领域类型

@@ -15,6 +15,7 @@ import {
 import { requestJudgeNarration } from './game/judge';
 import { getStartingIdentity, STARTING_IDENTITIES } from './game/identities';
 import { clearSave, loadGame, saveGame } from './game/persistence';
+import { formatPrototypePlaytestRecord } from './game/playtestRecord';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
 import type { ReactNode } from 'react';
 import type { Approach, AdultMark, GameState, LifeCard, ResourceKey, StartingIdentityId } from './game/types';
@@ -536,12 +537,26 @@ function EncounterScreen({ state, dispatch, endpoint }: {
 }
 
 function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
+  const [recordCopyStatus, setRecordCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const chapter = getChapter(state)!;
   const encounter = state.encounter!;
   const identity = getStartingIdentity(state.startingIdentity);
   const exhausted = state.resources.heart <= 0;
   const hasPendingLife = state.adultSchedule.some((slot) => slot.afterChapter === encounter.chapterIndex && !state.adultEventsResolved.includes(slot.eventId));
   const finalChapter = encounter.chapterIndex === CHAPTERS.length - 1;
+  const copyPlaytestRecord = async () => {
+    const record = formatPrototypePlaytestRecord(state);
+    if (!record || !navigator.clipboard) {
+      setRecordCopyStatus('failed');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(record);
+      setRecordCopyStatus('copied');
+    } catch {
+      setRecordCopyStatus('failed');
+    }
+  };
   return (
     <main className="screen encounter-result">
       <AgeRail age={chapter.year} label="结案" />
@@ -564,7 +579,13 @@ function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch
           <div className="prototype-result-actions">
             <p>制作原型使用固定种子与牌组；重新开始后，唯一变量仍是你的出牌选择。</p>
             <button className="primary-button" onClick={() => dispatch({ type: 'RESTART_PROTOTYPE' })}>用{identity.title}再试一次</button>
+            <button className="text-button" onClick={() => void copyPlaytestRecord()}>复制本局试玩记录</button>
             <button className="text-button" onClick={() => dispatch({ type: 'RESTART', seed: state.seed })}>返回标题，换一个身份</button>
+            {recordCopyStatus !== 'idle' && (
+              <p role="status">{recordCopyStatus === 'copied'
+                ? '本局记录已复制，可粘贴到试玩模板。'
+                : '未能访问剪贴板，请允许浏览器复制权限后重试。'}</p>
+            )}
           </div>
         ) : (
           <>

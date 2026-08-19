@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { createGame, getGrowthEvent, reduceGame } from './game/game';
@@ -184,6 +184,45 @@ describe('玩家入口', () => {
     expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
     expect(screen.getByText('第 1 / 5 轮')).toBeInTheDocument();
     expect(screen.getByText('灵活就业者')).toBeInTheDocument();
+  });
+
+  it('成年困局原型结案后可复制不含个人信息的客观试玩记录', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'technical-worker' });
+    saveGame({
+      ...initial,
+      phase: 'encounter-result',
+      encounter: { ...initial.encounter!, progress: 9, resolved: true, won: false },
+    });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '复制本局试玩记录' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('# 《浮生牌局》成年困局试玩客观记录')));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('- 试玩身份：职校技术员'));
+    expect(screen.getByRole('status')).toHaveTextContent('本局记录已复制，可粘贴到试玩模板');
+  });
+
+  it('剪贴板权限受限时明确提示试玩主持重试', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
+    });
+    const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
+    saveGame({
+      ...initial,
+      phase: 'encounter-result',
+      encounter: { ...initial.encounter!, resolved: true, won: false },
+    });
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '复制本局试玩记录' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('未能访问剪贴板');
   });
 
   it('压力变化按利害关系而不是数学正负着色', () => {

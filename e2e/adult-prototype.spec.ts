@@ -1,6 +1,7 @@
 import { expect, test } from './fixtures';
 
-test('玩家能以职校技术员完成合同困局并用同一身份重试', async ({ page }) => {
+test('玩家能以职校技术员完成合同困局、复制客观记录并用同一身份重试', async ({ context, page }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4173' });
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /浮生\s*牌局/ })).toBeVisible();
 
@@ -22,6 +23,13 @@ test('玩家能以职校技术员完成合同困局并用同一身份重试', as
   await expect(page.getByRole('heading', { name: /这一次，世界让了一步|你没有赢，但故事没有停/ })).toBeVisible();
   await expect(retry).toBeVisible();
   await expect(page.locator('.round-ledger > div').first()).toBeVisible();
+
+  await page.getByRole('button', { name: '复制本局试玩记录' }).click();
+  await expect(page.getByRole('status')).toContainText('本局记录已复制');
+  const copiedRecord = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copiedRecord).toContain('# 《浮生牌局》成年困局试玩客观记录');
+  expect(copiedRecord).toContain('- 试玩身份：职校技术员');
+  expect(copiedRecord).toContain('不包含试玩者姓名、联系方式或访谈回答');
 
   await retry.click();
   await expect(page.getByRole('region', { name: '起手身份' })).toContainText('职校技术员');
