@@ -7,6 +7,7 @@ import {
   getAdultEvent,
   getChapter,
   getGrowthEvent,
+  getRedrawPressureCost,
   getWorldPower,
   previewCardPlay,
   reduceGame,
@@ -320,6 +321,8 @@ function EncounterScreen({ state, dispatch, endpoint }: {
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
   const latest = encounter.records.at(-1);
   const handCards = encounter.hand.map((id) => state.cards.find((card) => card.id === id)!).filter(Boolean);
+  const memoryCards = encounter.memoryPile.map((id) => state.cards.find((card) => card.id === id)!).filter(Boolean);
+  const warmthCard = encounter.warmthCardId ? state.cards.find((card) => card.id === encounter.warmthCardId) ?? null : null;
   const worldPower = getWorldPower(state) ?? encounter.currentIntent.power;
   const firstDuel = encounter.chapterIndex === 0 && encounter.records.length <= 1;
   const tutorialActive = firstDuel && !tutorialDismissed;
@@ -410,9 +413,44 @@ function EncounterScreen({ state, dispatch, endpoint }: {
             <div className="hand-tools">
               <span>连用同型：牌力 +1　/　三种做法各出一次：牌力 +3、压力 −1</span>
               <button className="text-button" disabled={encounter.redrawUsed || Boolean(pendingCard)} onClick={() => dispatch({ type: 'REDRAW_HAND' })}>
-                {encounter.redrawUsed ? '本局已换过手' : `换一手${state.marks.some((mark) => mark.effect.kind === 'redraw') ? '（免费）' : '（压力 +1）'}`}
+                {encounter.redrawUsed ? '本局已换过手' : `换一手${getRedrawPressureCost(state) === 0 ? '（免费）' : `（压力 +${getRedrawPressureCost(state)}）`}`}
               </button>
             </div>
+          )}
+          {(!tutorialActive || tutorialStep === 2) && (
+            <section className="warmth-tool" aria-label="童年余温">
+              <div>
+                <b>童年余温</b>
+                <span>每场一次：从回忆堆找回一张牌，压力 −1。</span>
+              </div>
+              {encounter.warmthUsed ? (
+                <div className="warmth-tool__recalled" role="status">
+                  <strong>童年余温已用</strong>
+                  {warmthCard && (
+                    <p>
+                      <b>「{warmthCard.title}」· {typeof warmthCard.originAge === 'number' ? `${warmthCard.originAge} 岁` : `${warmthCard.originAge}牌`}</b>
+                      <span>{warmthCard.memory}</span>
+                    </p>
+                  )}
+                </div>
+              ) : memoryCards.length > 0 ? (
+                <div className="warmth-tool__cards">
+                  {memoryCards.map((card) => (
+                    <button
+                      className="text-button"
+                      disabled={Boolean(pendingCard)}
+                      onClick={() => dispatch({ type: 'RECALL_MEMORY', cardId: card.id })}
+                      key={card.id}
+                      aria-label={`召回「${card.title}」`}
+                    >
+                      召回「{card.title}」
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span>打出一张牌后，就能从回忆堆找回它。</span>
+              )}
+            </section>
           )}
           <div className="hand-grid">
             {handCards.map((card) => {

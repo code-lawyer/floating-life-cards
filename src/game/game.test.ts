@@ -83,12 +83,48 @@ describe('浮生牌局规则模块', () => {
     const preview = previewCardPlay(state, card)!;
     state = reduceGame(state, { type: 'PLAY_CARD', cardId });
     expect(state.encounter?.records).toHaveLength(1);
-    expect(state.encounter?.discard).toContain(cardId);
+    expect(state.encounter?.memoryPile).toContain(cardId);
     expect(state.encounter?.progress).toBeGreaterThanOrEqual(0);
     expect(state.encounter?.records[0]?.playerScore).toBe(preview.playerScore);
     expect(state.encounter?.records[0]?.worldScore).toBe(preview.worldScore);
     expect(preview.modifiers[0]?.label).toBe('卡牌基础');
     expect(Object.values(state.resources).every((value) => value >= 0 && value <= 9)).toBe(true);
+  });
+
+  it('三式人生状态额外推进局面，而不是额外增加牌力', () => {
+    let state = reduceGame(growUp(31415), { type: 'BEGIN_ADVENTURE' });
+    const cardId = state.encounter!.hand[0]!;
+    const card = state.cards.find((item) => item.id === cardId)!;
+    const previousApproaches = (['洞察', '行动', '共情'] as const).filter((approach) => approach !== card.approach);
+    const base: GameState = {
+      ...state,
+      traits: { insight: 20, nerve: 20, empathy: 20 },
+      encounter: {
+        ...state.encounter!,
+        progress: 0,
+        round: 1,
+        approachHistory: previousApproaches,
+        currentIntent: { ...state.encounter!.currentIntent, power: 1 },
+      },
+      marks: [],
+    };
+    const marked: GameState = {
+      ...base,
+      marks: [{
+        id: 'boundary',
+        title: '清楚的边界',
+        description: '每次三式组合额外推进 1。',
+        tone: 'good',
+        effect: { kind: 'combo', amount: 1 },
+      }],
+    };
+
+    expect(previewCardPlay(marked, card)?.playerScore).toBe(previewCardPlay(base, card)?.playerScore);
+
+    const baseResult = reduceGame(base, { type: 'PLAY_CARD', cardId });
+    const markedResult = reduceGame(marked, { type: 'PLAY_CARD', cardId });
+    expect(markedResult.encounter!.progress).toBe(baseResult.encounter!.progress + 1);
+    expect(markedResult.encounter!.records.at(-1)?.comboText).toContain('额外推进 +1');
   });
 
   it('每场牌局允许一次换手，并按规则收取压力', () => {
@@ -99,8 +135,56 @@ describe('浮生牌局规则模块', () => {
     expect(state.encounter?.redrawUsed).toBe(true);
     expect(state.encounter?.hand).toHaveLength(4);
     expect(state.encounter?.hand).not.toEqual(originalHand);
+    expect(state.encounter?.memoryPile).toEqual([]);
+    expect(new Set([
+      ...state.encounter!.hand,
+      ...state.encounter!.drawPile,
+      ...state.encounter!.memoryPile,
+    ])).toEqual(new Set(state.selectedDeck));
     expect(state.resources.pressure).toBe(Math.min(9, pressure + 1));
     expect(reduceGame(state, { type: 'REDRAW_HAND' })).toBe(state);
+  });
+
+  it('三个原型起手身份通过统一被动接口影响牌局', () => {
+    const base = reduceGame(growUp(2026), { type: 'BEGIN_ADVENTURE' });
+    const card = base.cards.find((item) => item.id === base.encounter!.hand[0])!;
+    const insightCard = { ...card, approach: '洞察' as const };
+    const craftCard = { ...card, tags: [...card.tags, '手艺'] };
+
+    const elite = { ...base, startingIdentity: 'elite-graduate' as const };
+    expect(previewCardPlay(elite, insightCard)!.playerScore).toBe(previewCardPlay(base, insightCard)!.playerScore + 1);
+
+    const technical = { ...base, startingIdentity: 'technical-worker' as const };
+    expect(previewCardPlay(technical, craftCard)!.playerScore).toBe(previewCardPlay(base, craftCard)!.playerScore + 1);
+
+    const gig = { ...base, startingIdentity: 'gig-worker' as const };
+    const redrawn = reduceGame(gig, { type: 'REDRAW_HAND' });
+    expect(redrawn.resources.pressure).toBe(gig.resources.pressure);
+  });
+
+  it('每场可用一次童年余温召回记忆牌并缓解压力', () => {
+    let state = reduceGame(growUp(2718), { type: 'BEGIN_ADVENTURE' });
+    state = { ...state, resources: { ...state.resources, heart: 9, pressure: 4 } };
+    const cardId = state.encounter!.hand[0]!;
+    state = reduceGame(state, { type: 'PLAY_CARD', cardId });
+    expect(state.phase).toBe('encounter');
+    expect(state.encounter?.memoryPile).toContain(cardId);
+    const pressureBeforeRecall = state.resources.pressure;
+
+    state = reduceGame(state, { type: 'RECALL_MEMORY', cardId });
+    expect(state.encounter?.warmthUsed).toBe(true);
+    expect(state.encounter?.warmthCardId).toBe(cardId);
+    expect(state.encounter?.hand).toContain(cardId);
+    expect(state.encounter?.memoryPile).not.toContain(cardId);
+    expect(state.resources.pressure).toBe(pressureBeforeRecall - 1);
+    expect(reduceGame(state, { type: 'RECALL_MEMORY', cardId })).toBe(state);
+
+    const invalidTarget = reduceGame(growUp(99), { type: 'BEGIN_ADVENTURE' });
+    expect(reduceGame(invalidTarget, { type: 'RECALL_MEMORY', cardId: 'not-a-card' })).toBe(invalidTarget);
+    const resolved = { ...invalidTarget, encounter: { ...invalidTarget.encounter!, resolved: true } };
+    expect(reduceGame(resolved, { type: 'RECALL_MEMORY', cardId: resolved.encounter.hand[0]! })).toBe(resolved);
+    const wrongPhase = growUp(99);
+    expect(reduceGame(wrongPhase, { type: 'RECALL_MEMORY', cardId: wrongPhase.cards[0]!.id })).toBe(wrongPhase);
   });
 
   it('世界牌局结束后进入抽取的成年生活事件', () => {

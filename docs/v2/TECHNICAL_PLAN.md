@@ -22,7 +22,7 @@ GameState 需要新增或明确以下概念：
 - encounteredGrowthEvents：避免同一人生重复抽到同一事件。
 - startingIdentity：时间跳切后生成的成年起手身份。
 - adultDeck：当前 8 张应对组。
-- childhoodWarmthUsed：当前困局是否已使用童年余温。
+- EncounterState.warmthUsed：当前困局是否已使用童年余温。
 
 记忆牌继续使用稳定 ID，并保留来源年龄、标签和原始记忆文本。起手身份和成长路线使用内容 ID，而不是把整份内容对象复制进存档。
 
@@ -76,7 +76,7 @@ growth-summary 展示童年牌册、成长倾向和路线；time-skip 生成并�
 
 ## 存档策略
 
-v2 会改变状态形状，存档升级为新版本。开发阶段可使用新的存档键，避免把 v1 存档误读成 v2；接近发布时再决定是否为已完成的 v1 人生提供只读档案导入。
+第一批v2规则底座已将存档升级为 `version: 3` 和独立的 `floating-life-cards.save.v3` 键，避免把v1存档误读成v2。接近发布时再决定是否为已完成的v1人生提供只读档案导入。
 
 身份和内容引用必须在加载时验证 ID 是否仍存在。仅检查版本、seed 和 cards 数组不足以支持未来内容调整。
 

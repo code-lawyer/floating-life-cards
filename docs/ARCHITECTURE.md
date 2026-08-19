@@ -24,6 +24,7 @@ canBeginAdventure(state): boolean
 canChooseAdultChoice(state, choice): boolean
 approachRelation(card, intent): Relation
 getWorldPower(state): number | null
+getRedrawPressureCost(state): number
 previewCardPlay(state, card): CombatPreview | null
 ```
 
@@ -44,6 +45,7 @@ stateDiagram-v2
   deck --> encounter: BEGIN_ADVENTURE / exactly 8 cards
   encounter --> encounter: PLAY_CARD / unresolved
   encounter --> encounter: REDRAW_HAND / once per encounter
+  encounter --> encounter: RECALL_MEMORY / once per encounter, from memory pile
   encounter --> encounter-result: target, round limit, or exhaustion
   encounter-result --> adult-event: CONTINUE_ADVENTURE / scheduled life event
   adult-event --> adult-result: CHOOSE_ADULT_EVENT
@@ -86,7 +88,7 @@ stateDiagram-v2
 
 ## 存档策略
 
-存档键为 `floating-life-cards.save.v2`，状态包含显式 `version: 2`。加载时执行最低限度的形状检查；解析失败或版本不符直接视为无存档。任何存储异常都会被吞掉，游戏保持可玩。
+存档键为 `floating-life-cards.save.v3`，状态包含显式 `version: 3`。v3加入回忆堆、童年余温和起手身份引用；加载时验证版本、身份ID、牌ID引用及新增困局字段，解析失败或引用不合法直接视为无存档。任何存储异常都会被吞掉，游戏保持可玩。
 
 未来更改状态形状时应新增迁移函数或升级存档键，不能在旧字段上静默改变语义。
 

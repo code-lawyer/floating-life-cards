@@ -98,6 +98,34 @@ describe('玩家入口', () => {
     expect(screen.queryByText('人生档案')).not.toBeInTheDocument();
   });
 
+  it('成年牌局可以用童年余温从回忆堆召回一张牌', () => {
+    let encounter = reduceGame(makeDeckState(), { type: 'BEGIN_ADVENTURE' });
+    encounter = { ...encounter, resources: { ...encounter.resources, heart: 9, pressure: 4 } };
+    const cardId = encounter.encounter!.hand[0]!;
+    const card = encounter.cards.find((item) => item.id === cardId)!;
+    encounter = reduceGame(encounter, { type: 'PLAY_CARD', cardId });
+    saveGame(encounter);
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: `召回「${card.title}」` }));
+    expect(screen.getByText('童年余温已用')).toBeInTheDocument();
+    expect(screen.getByText(card.memory)).toBeInTheDocument();
+    const originLabel = typeof card.originAge === 'number' ? `${card.originAge} 岁` : `${card.originAge}牌`;
+    expect(within(screen.getByRole('region', { name: '童年余温' })).getByText(new RegExp(originLabel))).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: `召回「${card.title}」` })).not.toBeInTheDocument();
+  });
+
+  it('灵活就业者的首次换手明确显示为免费', () => {
+    const encounter = {
+      ...reduceGame(makeDeckState(), { type: 'BEGIN_ADVENTURE' }),
+      startingIdentity: 'gig-worker' as const,
+    };
+    saveGame(encounter);
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '跳过教学' }));
+    expect(screen.getByRole('button', { name: '换一手（免费）' })).toBeEnabled();
+  });
+
   it('压力变化按利害关系而不是数学正负着色', () => {
     expect(resourceDeltaTone('pressure', 1)).toBe('negative');
     expect(resourceDeltaTone('pressure', -1)).toBe('positive');

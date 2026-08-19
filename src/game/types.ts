@@ -1,4 +1,20 @@
 export type Approach = '洞察' | '行动' | '共情';
+export type MemoryTag = '学习' | '手艺' | '关系' | '担当' | '探索';
+export type StartingIdentityId = 'elite-graduate' | 'technical-worker' | 'gig-worker';
+
+export type IdentityPassive =
+  | { kind: 'first-round-approach'; approach: Approach; amount: number }
+  | { kind: 'card-tag'; tag: MemoryTag; amount: number }
+  | { kind: 'free-first-redraw' };
+
+export interface StartingIdentity {
+  id: StartingIdentityId;
+  title: string;
+  description: string;
+  passiveText: string;
+  passive: IdentityPassive;
+}
+
 export type ResourceKey = 'heart' | 'money' | 'bonds' | 'pressure';
 export type Phase =
   | 'title'
@@ -179,6 +195,7 @@ export interface RoundRecord {
 export interface CombatPreview {
   playerScore: number;
   worldScore: number;
+  progressBonus: number;
   relation: 'advantage' | 'disadvantage' | 'even';
   comboText?: string;
   triad: boolean;
@@ -192,11 +209,13 @@ export interface EncounterState {
   progress: number;
   drawPile: string[];
   hand: string[];
-  discard: string[];
+  memoryPile: string[];
   currentIntent: Intent;
   climate: WorldClimate;
   records: RoundRecord[];
   redrawUsed: boolean;
+  warmthUsed: boolean;
+  warmthCardId: string | null;
   approachHistory: Approach[];
   resolved: boolean;
   won: boolean;
@@ -225,7 +244,7 @@ export interface Ending {
 }
 
 export interface GameState {
-  version: 2;
+  version: 3;
   seed: number;
   rng: number;
   phase: Phase;
@@ -233,6 +252,7 @@ export interface GameState {
   age: number;
   resources: Resources;
   traits: Traits;
+  startingIdentity: StartingIdentityId | null;
   cards: LifeCard[];
   selectedDeck: string[];
   growthResult: GrowthResult | null;
@@ -260,6 +280,7 @@ export type GameAction =
   | { type: 'BEGIN_ADVENTURE' }
   | { type: 'PLAY_CARD'; cardId: string; judgeText?: string }
   | { type: 'REDRAW_HAND' }
+  | { type: 'RECALL_MEMORY'; cardId: string }
   | { type: 'CONTINUE_ADVENTURE' }
   | { type: 'CHOOSE_ADULT_EVENT'; choiceId: string }
   | { type: 'CONTINUE_ADULT_EVENT' }

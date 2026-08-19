@@ -516,6 +516,17 @@ button.deck-slot:hover { z-index: 1; background: white; box-shadow: 4px 4px 0 rg
 .hand-tools { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 0 14px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 7px 0; }
 .hand-tools > span { color: var(--muted); font: 0.74rem/1.6 "Cascadia Mono", "Microsoft YaHei", monospace; }
 .hand-tools .text-button { flex: 0 0 auto; min-height: 34px; font-size: 0.68rem; }
+.warmth-tool { display: grid; grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr); align-items: center; gap: 16px; margin: 0 0 16px; border: 1px solid var(--green); background: color-mix(in srgb, var(--green) 6%, var(--paper)); padding: 12px 14px; }
+.warmth-tool > div:first-child { display: grid; gap: 4px; }
+.warmth-tool b { color: var(--green); font: 700 0.82rem "STSong", serif; }
+.warmth-tool span { color: var(--muted); font-size: 0.72rem; line-height: 1.5; }
+.warmth-tool__recalled { display: grid; justify-items: end; gap: 5px; }
+.warmth-tool__recalled > strong { color: var(--green); font-size: 0.76rem; }
+.warmth-tool__recalled p { display: grid; justify-items: end; gap: 3px; margin: 0; text-align: right; }
+.warmth-tool__recalled p b { color: var(--ink); font-size: 0.72rem; }
+.warmth-tool__recalled p span { max-width: 520px; font-family: "STSong", serif; }
+.warmth-tool__cards { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.warmth-tool__cards .text-button { min-height: 36px; font-size: 0.68rem; }
 .judge-wait { color: var(--blue); font: 0.7rem "Cascadia Mono", monospace; }
 
 .encounter-result .screen__body { max-width: 1150px; }
@@ -708,6 +719,10 @@ button.deck-slot:hover { z-index: 1; background: white; box-shadow: 4px 4px 0 rg
   .encounter-premise { grid-template-columns: 52px 1fr; }
   .hand-grid { grid-template-columns: 1fr; }
   .hand-tools { align-items: flex-start; flex-direction: column; }
+  .warmth-tool { grid-template-columns: 1fr; }
+  .warmth-tool__recalled { justify-items: start; }
+  .warmth-tool__recalled p { justify-items: start; text-align: left; }
+  .warmth-tool__cards { justify-content: flex-start; }
   .duel-coach { grid-template-columns: 1fr; gap: 14px; padding: 16px; }
   .duel-coach > span { grid-row: auto; place-items: start; border-right: 0; border-bottom: 1px solid currentColor; padding-bottom: 10px; }
   .duel-coach > button, .duel-coach__actions { grid-column: auto; }

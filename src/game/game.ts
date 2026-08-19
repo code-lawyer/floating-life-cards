@@ -1,4 +1,5 @@
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
+import { getIdentityCardBonus, identityMakesFirstRedrawFree } from './identities';
 import { shuffle, takeOne } from './rng';
 import type {
   Approach,
@@ -21,7 +22,7 @@ const HAND_SIZE = 4;
 
 export function createGame(seed = Date.now() >>> 0): GameState {
   return {
-    version: 2,
+    version: 3,
     seed,
     rng: seed || 0x6d2b79f5,
     phase: 'title',
@@ -29,6 +30,7 @@ export function createGame(seed = Date.now() >>> 0): GameState {
     age: 4,
     resources: { heart: 7, money: 5, bonds: 5, pressure: 1 },
     traits: { insight: 0, nerve: 0, empathy: 0 },
+    startingIdentity: null,
     cards: [],
     selectedDeck: [],
     growthResult: null,
@@ -127,19 +129,19 @@ function autoSelect(cards: LifeCard[]): string[] {
 
 function refillHand(encounter: EncounterState, target: number, rng: number): [EncounterState, number] {
   let drawPile = [...encounter.drawPile];
-  let discard = [...encounter.discard];
+  let memoryPile = [...encounter.memoryPile];
   const hand = [...encounter.hand];
   let next = rng;
   while (hand.length < target) {
     if (drawPile.length === 0) {
-      if (discard.length === 0) break;
-      [drawPile, next] = shuffle(discard, next);
-      discard = [];
+      if (memoryPile.length === 0) break;
+      [drawPile, next] = shuffle(memoryPile, next);
+      memoryPile = [];
     }
     const drawn = drawPile.shift();
     if (drawn) hand.push(drawn);
   }
-  return [{ ...encounter, drawPile, discard, hand }, next];
+  return [{ ...encounter, drawPile, memoryPile, hand }, next];
 }
 
 function startEncounter(state: GameState, chapterIndex: number): GameState {
@@ -155,11 +157,13 @@ function startEncounter(state: GameState, chapterIndex: number): GameState {
     progress: 0,
     drawPile,
     hand: [],
-    discard: [],
+    memoryPile: [],
     currentIntent: chapter.intents[0]!,
     climate,
     records: [],
     redrawUsed: false,
+    warmthUsed: false,
+    warmthCardId: null,
     approachHistory: [],
     resolved: false,
     won: false,
@@ -225,6 +229,11 @@ function traitBonus(state: GameState, approach: Approach): number {
   return Math.floor(value / 3);
 }
 
+export function getRedrawPressureCost(state: GameState): number {
+  if (identityMakesFirstRedrawFree(state.startingIdentity)) return 0;
+  return Math.max(0, 1 + markAmount(state, 'redraw'));
+}
+
 export function previewCardPlay(state: GameState, card: LifeCard): CombatPreview | null {
   if (!state.encounter) return null;
   const relation = approachRelation(card.approach, state.encounter.currentIntent.approach);
@@ -235,13 +244,17 @@ export function previewCardPlay(state: GameState, card: LifeCard): CombatPreview
   const lifeMarkBonus = markAmount(state, 'approach', card.approach);
   const firstRoundBonus = state.encounter.round === 1 ? markAmount(state, 'first-round') : 0;
   const masteryBonus = state.upgradedCards.includes(card.id) ? 1 : 0;
+  const identityBonus = getIdentityCardBonus(state.startingIdentity, card, state.encounter.round);
   const resourceBonus = (state.resources.money >= 7 && state.encounter.round === 1 ? 1 : 0)
     + (card.approach === '共情' ? (state.resources.bonds >= 7 ? 1 : state.resources.bonds <= 1 ? -1 : 0) : 0);
   const approachHistory = [...state.encounter.approachHistory, card.approach].slice(-3);
   const triad = approachHistory.length === 3 && new Set(approachHistory).size === 3;
   const practiced = state.encounter.approachHistory.at(-1) === card.approach;
-  const comboBonus = triad ? 3 + markAmount(state, 'combo') : practiced ? 1 : 0;
-  const comboText = triad ? `三式合流 · 牌力 +${comboBonus}，压力 −1` : practiced ? '惯用手 · 牌力 +1' : undefined;
+  const comboBonus = triad ? 3 : practiced ? 1 : 0;
+  const progressBonus = triad ? markAmount(state, 'combo') : 0;
+  const comboText = triad
+    ? `三式合流 · 牌力 +3，压力 −1${progressBonus > 0 ? `，额外推进 +${progressBonus}` : ''}`
+    : practiced ? '惯用手 · 牌力 +1' : undefined;
   const growthBonus = traitBonus(state, card.approach);
   const modifiers = [
     { label: '卡牌基础', value: card.power },
@@ -250,6 +263,7 @@ export function previewCardPlay(state: GameState, card: LifeCard): CombatPreview
     { label: '卡牌效果', value: echoBonus + steadyBonus },
     { label: '时代气候', value: climateBonus },
     { label: '人生状态', value: lifeMarkBonus + firstRoundBonus },
+    { label: '起手身份', value: identityBonus },
     { label: '淬炼', value: masteryBonus },
     { label: '资源余量', value: resourceBonus },
     { label: triad ? '三式合流' : practiced ? '惯用手' : '组合', value: comboBonus },
@@ -257,6 +271,7 @@ export function previewCardPlay(state: GameState, card: LifeCard): CombatPreview
   return {
     playerScore: Math.max(0, modifiers.reduce((sum, item) => sum + item.value, 0)),
     worldScore: getWorldPower(state) ?? state.encounter.currentIntent.power,
+    progressBonus,
     relation,
     comboText,
     triad,
@@ -365,9 +380,10 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       const chapter = CHAPTERS[state.encounter.chapterIndex]!;
       const intent = state.encounter.currentIntent;
       const preview = previewCardPlay(state, card)!;
-      const { playerScore, worldScore, triad, approachHistory, comboText } = preview;
+      const { playerScore, worldScore, progressBonus, triad, approachHistory, comboText } = preview;
       const outcome = playerScore > worldScore ? 'win' : playerScore === worldScore ? 'draw' : 'loss';
-      const progressGain = outcome === 'win' ? 2 + Math.min(3, playerScore - worldScore) : outcome === 'draw' ? 1 : 0;
+      const progressGain = (outcome === 'win' ? 2 + Math.min(3, playerScore - worldScore) : outcome === 'draw' ? 1 : 0)
+        + progressBonus;
       let resources = state.resources;
       if (outcome === 'loss') {
         resources = changeResource(resources, 'heart', -Math.max(1, worldScore - playerScore - card.guard));
@@ -387,7 +403,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
         ...state.encounter,
         progress: state.encounter.progress + progressGain,
         hand: state.encounter.hand.filter((id) => id !== card.id),
-        discard: [...state.encounter.discard, card.id],
+        memoryPile: [...state.encounter.memoryPile, card.id],
         approachHistory,
         records: [...state.encounter.records, {
           cardTitle: card.title, intentTitle: intent.title, playerScore, worldScore, outcome,
@@ -419,16 +435,34 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
     }
     case 'REDRAW_HAND': {
       if (state.phase !== 'encounter' || !state.encounter || state.encounter.redrawUsed) return state;
-      const pressureCost = Math.max(0, 1 + markAmount(state, 'redraw'));
+      const pressureCost = getRedrawPressureCost(state);
+      const previousHand = state.encounter.hand;
       let encounter: EncounterState = {
         ...state.encounter,
         hand: [],
-        discard: [...state.encounter.discard, ...state.encounter.hand],
         redrawUsed: true,
       };
       let rng: number;
       [encounter, rng] = refillHand(encounter, HAND_SIZE, state.rng);
+      let drawPile: string[];
+      [drawPile, rng] = shuffle([...encounter.drawPile, ...previousHand], rng);
+      encounter = { ...encounter, drawPile };
       return { ...state, rng, encounter, resources: changeResource(state.resources, 'pressure', pressureCost) };
+    }
+    case 'RECALL_MEMORY': {
+      if (state.phase !== 'encounter' || !state.encounter || state.encounter.resolved || state.encounter.warmthUsed) return state;
+      if (!state.encounter.memoryPile.includes(action.cardId)) return state;
+      return {
+        ...state,
+        resources: changeResource(state.resources, 'pressure', -1),
+        encounter: {
+          ...state.encounter,
+          memoryPile: state.encounter.memoryPile.filter((id) => id !== action.cardId),
+          hand: [...state.encounter.hand, action.cardId],
+          warmthUsed: true,
+          warmthCardId: action.cardId,
+        },
+      };
     }
     case 'CONTINUE_ADVENTURE': {
       if (state.phase !== 'encounter-result' || !state.encounter) return state;
