@@ -4,6 +4,7 @@
   "version": "1.3.0",
   "type": "module",
   "scripts": {
+    "analyze:prototype": "tsx scripts/analyze-prototype.ts",
     "dev": "vite",
     "judge": "node scripts/judge-server.mjs",
     "build": "tsc -b && vite build",
@@ -24,9 +25,11 @@
     "@playwright/test": "^1.62.1",
     "@testing-library/jest-dom": "latest",
     "@testing-library/react": "latest",
+    "@types/node": "^26.2.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "jsdom": "latest",
+    "tsx": "^4.23.12",
     "vitest": "latest"
   }
 }
