@@ -233,26 +233,19 @@ export const GROWTH_EVENTS: GrowthEvent[] = [
 
 export const CHAPTERS: Chapter[] = [
   {
-    id: 'contract-terms', year: 24, title: '合同上没有写的事', location: '签约室 · 下午 16:40', target: 12, rounds: 5,
-    premise: '对方把一份条件含糊的合同推到你面前。真正影响收入、时间与退出的内容，都藏在没有被主动说明的地方。',
-    rule: {
-      id: 'signature-countdown',
-      title: '签字倒计时',
-      description: '从第二轮起，每过一轮，世界强度 +1。拖得越久，对方越把时间变成你的压力。',
-      effect: { kind: 'escalating-world', amount: 1 },
-    },
+    id: 'first-job', year: 18, title: '没有经验的人', location: '人才市场 · B17 摊位', target: 9, rounds: 4,
+    premise: '招聘方把你的简历翻到背面，问：“你拿什么证明自己不是一张白纸？”',
     intents: [
-      { id: 'contract-family', title: '先谈前景', approach: '共情', power: 4, tell: '对方先说“我们是一家人”，始终没有打开合同。', text: '亲近的语言试图替具体条件占住位置。' },
-      { id: 'contract-scope', title: '责任空白', approach: '洞察', power: 5, tell: '工作范围只写了“及其他安排”。', text: '没有边界的句子准备把所有例外变成日常。' },
-      { id: 'contract-now', title: '当场签字', approach: '行动', power: 5, tell: '笔被推到你面前，下一位已经在门外等。', text: '仓促本身正在成为条件的一部分。' },
-      { id: 'contract-everyone', title: '大家都签了', approach: '共情', power: 6, tell: '同伴的名字被当作同意条件的理由。', text: '群体的沉默被包装成你的答案。' },
-      { id: 'contract-last-page', title: '最后一页', approach: '洞察', power: 6, tell: '真正影响收入与退出的条款藏在末页。', text: '最重要的数字终于离开了漂亮话。' },
+      { id: 'j1', title: '资历门槛', approach: '洞察', power: 5, tell: '对方反复指向职位说明里的数字。', text: '规章试图把你挡在故事开始之前。' },
+      { id: 'j2', title: '临场追问', approach: '行动', power: 6, tell: '面试官合上简历，等你先开口。', text: '现在没有标准答案。' },
+      { id: 'j3', title: '团队疑虑', approach: '共情', power: 5, tell: '对方问起你如何与难相处的人共事。', text: '能力之外，他们也在判断你会留下什么气氛。' },
+      { id: 'j4', title: '压价时刻', approach: '洞察', power: 7, tell: '一个模糊的“年轻人要看长远”被放到桌面上。', text: '数字被藏在漂亮话后面。' },
     ],
-    victory: '关键条件被逐条写清。你签下的不是一份完美工作，而是一份自己知道将承担什么的约定。',
-    setback: '你没能让所有空白都得到回答。合同仍在那里，而你已经知道哪些代价不能再假装没有看见。',
+    victory: '你拿到一张薄薄的录用通知。它没有承诺未来，只承认了你的第一步。',
+    setback: '岗位没有留下你。你把那几句追问抄在背面，去敲下一扇门。',
   },
   {
-    id: 'city', year: 28, title: '陌生城市的押金', location: '合租屋 · 凌晨 00:43', target: 10, rounds: 4,
+    id: 'city', year: 21, title: '陌生城市的押金', location: '合租屋 · 凌晨 00:43', target: 10, rounds: 4,
     premise: '房东临时涨价，室友准备放弃。明早之前，你们必须决定是留下、谈判，还是拖着箱子离开。',
     intents: [
       { id: 'c1', title: '模糊合同', approach: '洞察', power: 6, tell: '关键条款被一句“大家都这样”带过。', text: '纸上的空白正等着吞掉口头承诺。' },
@@ -264,7 +257,7 @@ export const CHAPTERS: Chapter[] = [
     setback: '你拖着箱子走进清晨。城市没有收留你，却也没能把你赶回原点。',
   },
   {
-    id: 'trust', year: 32, title: '合伙人的沉默', location: '共享办公室 · 第七码表格', target: 11, rounds: 4,
+    id: 'trust', year: 25, title: '合伙人的沉默', location: '共享办公室 · 第七码表格', target: 11, rounds: 4,
     premise: '你和朋友做了半年的项目。关键款项不见了，合伙人三天没有回复，而发布日期就在周五。',
     intents: [
       { id: 't1', title: '账目断层', approach: '洞察', power: 7, tell: '三笔支出没有对应凭证。', text: '信任需要经得起逐行查看。' },
@@ -276,7 +269,7 @@ export const CHAPTERS: Chapter[] = [
     setback: '发布日期过去了。你失去一些钱、一些信任，也得到一条此后不再省略的底线。',
   },
   {
-    id: 'turning', year: 37, title: '时代突然转弯', location: '公司会议室 · 无窗', target: 12, rounds: 5,
+    id: 'turning', year: 30, title: '时代突然转弯', location: '公司会议室 · 无窗', target: 12, rounds: 5,
     premise: '行业在半年内换了方向。旧经验贬值，部门裁撤名单还没公布，每个人都在假装照常工作。',
     intents: [
       { id: 'r1', title: '旧路径依赖', approach: '洞察', power: 8, tell: '所有方案都从“以前一直如此”开始。', text: '经验正在要求你向它效忠。' },
@@ -289,7 +282,7 @@ export const CHAPTERS: Chapter[] = [
     setback: '工位被装进纸箱。离开时你带走的不是职位，而是一套重新开始的动作。',
   },
   {
-    id: 'proposal', year: 43, title: '你要怎样生活', location: '家中餐桌 · 周日傍晚', target: 13, rounds: 5,
+    id: 'proposal', year: 36, title: '你要怎样生活', location: '家中餐桌 · 周日傍晚', target: 13, rounds: 5,
     premise: '一个看似更体面的机会要求你放弃现在的生活节奏。没人能替你判断，得到的是否比失去的更多。',
     intents: [
       { id: 'p1', title: '他人的标尺', approach: '洞察', power: 8, tell: '劝说里频繁出现“到了这个年纪”。', text: '一条公共刻度想接管你的私人答案。' },
@@ -343,7 +336,7 @@ function adultChoice(
 
 export const ADULT_EVENTS: AdultEvent[] = [
   {
-    id: 'first-salary', afterChapter: 0, age: 25, category: '钱与自由', title: '第一笔完整工资',
+    id: 'first-salary', afterChapter: 0, age: 19, category: '钱与自由', title: '第一笔完整工资',
     text: '工资到账的短信比你想象中短。家里刚好要换一件电器，朋友约你去看一直想看的演出，你的银行卡第一次像一张小小的选票。',
     question: '这笔钱先投给哪一种生活？',
     choices: [
@@ -353,7 +346,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'friend-loan', afterChapter: 0, age: 26, category: '朋友与钱', title: '朋友开口借钱',
+    id: 'friend-loan', afterChapter: 0, age: 20, category: '朋友与钱', title: '朋友开口借钱',
     text: '老朋友说只是周转两周，金额不大不小，刚好会让你接下来一个月过得紧。你听见电话那边还有别人的声音。',
     question: '信任要不要写进账本？',
     choices: [
@@ -363,7 +356,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'night-class', afterChapter: 0, age: 27, category: '学习与时间', title: '周二晚上的教室',
+    id: 'night-class', afterChapter: 0, age: 20, category: '学习与时间', title: '周二晚上的教室',
     text: '一门与你工作无关的夜校课程开放报名。学费不便宜，每周还会吃掉两个晚上。报名页面在零点关闭。',
     question: '已经开始工作的人，还能把时间交给无用的好奇吗？',
     choices: [
@@ -373,7 +366,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'lease-renewal', afterChapter: 1, age: 29, category: '居所', title: '又一次搬家通知',
+    id: 'lease-renewal', afterChapter: 1, age: 23, category: '居所', title: '又一次搬家通知',
     text: '房子要卖，三十天后必须搬走。你和附近的早餐摊刚熟，书架也才钉稳。纸箱从床底被重新拖了出来。',
     question: '家是地址，还是可以一起搬走的东西？',
     choices: [
@@ -383,7 +376,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'checkup', afterChapter: 1, age: 30, category: '身体', title: '体检单上的箭头',
+    id: 'checkup', afterChapter: 1, age: 24, category: '身体', title: '体检单上的箭头',
     text: '几个指标旁边多了向上的箭头。医生说现在不严重，但“以后要注意”通常意味着从今天开始。',
     question: '你会怎样理解这张尚未构成坏消息的纸？',
     choices: [
@@ -393,7 +386,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'outside-offer', afterChapter: 1, age: 31, category: '工作', title: '一封没有投过的邀请',
+    id: 'outside-offer', afterChapter: 1, age: 24, category: '工作', title: '一封没有投过的邀请',
     text: '陌生公司给出更高薪水，但岗位含糊、团队年轻，要求你三天内决定。现在的工作不好不坏，熟悉得让人不用思考。',
     question: '稳定是资产，还是正在收租的惯性？',
     choices: [
@@ -403,7 +396,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'parent-call', afterChapter: 2, age: 33, category: '家庭', title: '电话里说“没什么”',
+    id: 'parent-call', afterChapter: 2, age: 27, category: '家庭', title: '电话里说“没什么”',
     text: '家人说只是一次小检查，不用回来。你听见他们刻意把医院广播压在话筒外面。手头的项目周一交付。',
     question: '成年以后，牵挂总与别的责任同时发生。',
     choices: [
@@ -413,7 +406,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'relationship-crossroad', afterChapter: 2, age: 34, category: '亲密关系', title: '两张不同城市的车票',
+    id: 'relationship-crossroad', afterChapter: 2, age: 28, category: '亲密关系', title: '两张不同城市的车票',
     text: '一个重要的人得到远方机会，希望你一起走。你的工作和朋友都在这里。没有谁做错，只是两条路开始分开。',
     question: '关系不是选择题，却到了必须作答的时候。',
     choices: [
@@ -423,7 +416,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'empty-week', afterChapter: 2, age: 36, category: '停顿', title: '突然空出来的一周',
+    id: 'empty-week', afterChapter: 2, age: 29, category: '停顿', title: '突然空出来的一周',
     text: '项目延期，你意外得到七天空白。待办清单立刻想把它填满，但身体先在周六睡到了下午。',
     question: '空白也需要被使用吗？',
     choices: [
@@ -433,7 +426,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'team-cut', afterChapter: 3, age: 38, category: '责任', title: '名单上有你的下属',
+    id: 'team-cut', afterChapter: 3, age: 32, category: '责任', title: '名单上有你的下属',
     text: '公司要求团队缩减一个人，名单必须由你提交。每个人都有留下的理由，预算表却只认一个数字。',
     question: '当你成为曾经害怕的“上面”，会怎样使用这点权力？',
     choices: [
@@ -443,7 +436,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'friend-startup', afterChapter: 3, age: 40, category: '风险', title: '老朋友的创业桌',
+    id: 'friend-startup', afterChapter: 3, age: 34, category: '风险', title: '老朋友的创业桌',
     text: '朋友拿出一份还不完整的计划，邀请你成为合伙人。它可能失败，也可能是你等了很久却不敢命名的第二条路。',
     question: '你愿意把多少确定性换成共同签名？',
     choices: [
@@ -453,7 +446,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'hometown-flat', afterChapter: 3, age: 42, category: '故乡', title: '老房子的处置',
+    id: 'hometown-flat', afterChapter: 3, age: 35, category: '故乡', title: '老房子的处置',
     text: '家里讨论卖掉住了很多年的旧房。维修昂贵，地段也不会突然升值，可每个抽屉都像在保存某个人的证词。',
     question: '记忆需要一处固定地址吗？',
     choices: [
@@ -463,7 +456,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'mentor-young', afterChapter: 4, age: 44, category: '传递', title: '年轻同事问你怎么办',
+    id: 'mentor-young', afterChapter: 4, age: 39, category: '传递', title: '年轻同事问你怎么办',
     text: '一个刚入行的人拿着几乎和你当年一样的问题来找你。他期待一个答案，而你最清楚答案会过期。',
     question: '经验应该作为结论交出去，还是作为工具？',
     choices: [
@@ -473,7 +466,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'study-again', afterChapter: 4, age: 45, category: '重新开始', title: '比同学大很多的课堂',
+    id: 'study-again', afterChapter: 4, age: 41, category: '重新开始', title: '比同学大很多的课堂',
     text: '你想学的新东西要求从基础开始。试听课里，大多数同学比你年轻十几岁；他们问的问题，你甚至没听懂。',
     question: '已经会了很多以后，还愿意重新显得笨拙吗？',
     choices: [
@@ -483,7 +476,7 @@ export const ADULT_EVENTS: AdultEvent[] = [
     ],
   },
   {
-    id: 'care-years', afterChapter: 4, age: 47, category: '照护', title: '生活被切成很多小格',
+    id: 'care-years', afterChapter: 4, age: 44, category: '照护', title: '生活被切成很多小格',
     text: '家中有人需要长期照护。预约、药盒、工作会议和自己的睡眠挤在同一张日历上，没有任何一项愿意消失。',
     question: '怎样承担一件不能靠一次勇敢解决的事？',
     choices: [

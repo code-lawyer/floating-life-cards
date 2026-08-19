@@ -1,4 +1,4 @@
-import type { LifeCard } from './types';
+import type { Chapter, LifeCard, StartingIdentityId } from './types';
 
 export const PROTOTYPE_SEED = 0x24c0ffee;
 
@@ -55,6 +55,60 @@ export const PROTOTYPE_CARDS: LifeCard[] = [
   },
 ];
 
-export const PROTOTYPE_DECK_IDS = PROTOTYPE_CARDS
-  .filter((card) => card.id !== 'prototype-circled-line' && card.id !== 'prototype-bookcase')
-  .map((card) => card.id);
+export const PROTOTYPE_DECK_IDS = [
+  'prototype-mistake-map',
+  'prototype-radio-wire',
+  'prototype-first-hand',
+  'prototype-bike-chain',
+  'prototype-confirm-key',
+  'prototype-half-sentence',
+  'prototype-table-talk',
+  'prototype-leavable-home',
+];
+
+const PROTOTYPE_INTENTS: Chapter['intents'] = [
+  { id: 'contract-family', title: '先谈前景', approach: '共情', power: 4, tell: '对方先说“我们是一家人”，始终没有打开合同。', text: '亲近的语言试图替具体条件占住位置。' },
+  { id: 'contract-scope', title: '责任空白', approach: '洞察', power: 5, tell: '工作范围只写了“及其他安排”。', text: '没有边界的句子准备把所有例外变成日常。' },
+  { id: 'contract-now', title: '当场签字', approach: '行动', power: 5, tell: '笔被推到你面前，下一位已经在门外等。', text: '仓促本身正在成为条件的一部分。' },
+  { id: 'contract-everyone', title: '大家都签了', approach: '共情', power: 6, tell: '同伴的名字被当作同意条件的理由。', text: '群体的沉默被包装成你的答案。' },
+  { id: 'contract-last-page', title: '最后一页', approach: '洞察', power: 6, tell: '真正影响收入与退出的条款藏在末页。', text: '最重要的数字终于离开了漂亮话。' },
+];
+
+const PROTOTYPE_NARRATIVE: Record<StartingIdentityId, Pick<Chapter, 'location' | 'premise' | 'victory' | 'setback'>> = {
+  'elite-graduate': {
+    location: '部门会议室 · 下午 16:40',
+    premise: '入职流程的最后一页被推到你面前。招聘时谈过的培养、收入与退出条件，都没有被主动写清。',
+    victory: '关键条件被逐条写清。你签下的不是一条被学历保证的路，而是一份自己知道将承担什么的约定。',
+    setback: '会议结束时仍有空白。你第一次发现，擅长回答问题并不等于别人会主动说明代价。',
+  },
+  'technical-worker': {
+    location: '站点办公室 · 下午 16:40',
+    premise: '班次确认前，一份写着“服从其他安排”的合同被递过来。工种、加班与安全责任仍停在口头说法里。',
+    victory: '班次、工种与责任被逐条写清。手上的技术没有替你谈判，却让你知道哪些承诺必须落到纸面。',
+    setback: '办公室准备关门时仍有几处空白。你记下它们，知道熟练工作不等于必须接受模糊边界。',
+  },
+  'gig-worker': {
+    location: '平台服务中心 · 下午 16:40',
+    premise: '账号开通前，平台协议要求立即确认。抽成、派单、申诉与退出规则散落在没有人主动解释的页面里。',
+    victory: '抽成、派单与退出条件终于被逐条确认。灵活不是没有边界，而是知道自己正在交换什么。',
+    setback: '确认倒计时结束时仍有问题没被回答。你没有得到完整保障，但已经认出哪些风险不能只靠“自由”二字带过。',
+  },
+};
+
+export function getPrototypeChapter(identityId: StartingIdentityId): Chapter {
+  return {
+    id: 'contract-terms',
+    year: 24,
+    title: '合同上没有写的事',
+    target: 12,
+    rounds: 5,
+    rule: {
+      id: 'signature-countdown',
+      title: '签字倒计时',
+      description: '从第二轮起，每过一轮，世界强度 +1。拖得越久，对方越把时间变成你的压力。',
+      effect: { kind: 'escalating-world', amount: 1 },
+    },
+    intents: PROTOTYPE_INTENTS,
+    ...PROTOTYPE_NARRATIVE[identityId],
+  };
+}

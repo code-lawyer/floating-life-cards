@@ -1,6 +1,6 @@
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
 import { getIdentityCardBonus, identityMakesFirstRedrawFree } from './identities';
-import { PROTOTYPE_CARDS, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
+import { getPrototypeChapter, PROTOTYPE_CARDS, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
 import { shuffle, takeOne } from './rng';
 import type {
   Approach,
@@ -55,8 +55,15 @@ export function getGrowthEvent(state: GameState): GrowthEvent | null {
   return GROWTH_EVENTS.find((event) => event.age === state.age) ?? null;
 }
 
+function getChapterAt(state: GameState, chapterIndex: number): Chapter | null {
+  if (state.mode === 'prototype') {
+    return state.startingIdentity ? getPrototypeChapter(state.startingIdentity) : null;
+  }
+  return CHAPTERS[chapterIndex] ?? null;
+}
+
 export function getChapter(state: GameState): Chapter | null {
-  return state.encounter ? CHAPTERS[state.encounter.chapterIndex] ?? null : null;
+  return state.encounter ? getChapterAt(state, state.encounter.chapterIndex) : null;
 }
 
 export function getAdultEvent(state: GameState): AdultEvent | null {
@@ -152,7 +159,8 @@ function refillHand(encounter: EncounterState, target: number, rng: number): [En
 }
 
 function startEncounter(state: GameState, chapterIndex: number): GameState {
-  const chapter = CHAPTERS[chapterIndex]!;
+  const chapter = getChapterAt(state, chapterIndex);
+  if (!chapter) return state;
   let drawPile: string[];
   let rng: number;
   [drawPile, rng] = shuffle(state.selectedDeck, state.rng);
@@ -406,7 +414,8 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       if (state.phase !== 'encounter' || !state.encounter || state.encounter.resolved) return state;
       const card = state.cards.find((item) => item.id === action.cardId);
       if (!card || !state.encounter.hand.includes(card.id)) return state;
-      const chapter = CHAPTERS[state.encounter.chapterIndex]!;
+      const chapter = getChapter(state);
+      if (!chapter) return state;
       const intent = state.encounter.currentIntent;
       const preview = previewCardPlay(state, card)!;
       const { playerScore, worldScore, progressBonus, triad, approachHistory, comboText } = preview;
@@ -494,7 +503,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       };
     }
     case 'CONTINUE_ADVENTURE': {
-      if (state.phase !== 'encounter-result' || !state.encounter) return state;
+      if (state.mode !== 'story' || state.phase !== 'encounter-result' || !state.encounter) return state;
       return advanceAdultJourney(state);
     }
     case 'CHOOSE_ADULT_EVENT': {

@@ -69,6 +69,14 @@ describe('浮生牌局规则模块', () => {
     expect(reduceGame(story, { type: 'RESTART_PROTOTYPE' })).toBe(story);
   });
 
+  it('原型入口与重开只接受各自的合法阶段', () => {
+    const story = acceptOrigin(17);
+    expect(reduceGame(story, { type: 'START_PROTOTYPE', identityId: 'elite-graduate' })).toBe(story);
+
+    const playing = reduceGame(createGame(17), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
+    expect(reduceGame(playing, { type: 'RESTART_PROTOTYPE' })).toBe(playing);
+  });
+
   it('完成十四年成长并留下十五张牌', () => {
     const state = growUp();
     expect(state.phase).toBe('deck');
@@ -108,6 +116,7 @@ describe('浮生牌局规则模块', () => {
     expect(state.selectedDeck).toHaveLength(8);
     state = reduceGame(state, { type: 'BEGIN_ADVENTURE' });
     expect(state.phase).toBe('encounter');
+    expect(getChapter(state)?.id).toBe('first-job');
     expect(state.encounter?.hand).toHaveLength(4);
     expect(state.adultSchedule).toHaveLength(10);
     expect(new Set(state.adultSchedule.map((slot) => slot.eventId)).size).toBe(10);

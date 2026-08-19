@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, getRedrawPressureCost, previewCardPlay, reduceGame } from './game';
+import { createGame, getChapter, getRedrawPressureCost, previewCardPlay, reduceGame } from './game';
 import type { Approach, GameState, LifeCard, StartingIdentityId } from './types';
 
 const APPROACHES: Approach[] = ['洞察', '行动', '共情'];
@@ -59,6 +59,18 @@ describe('成年困局原型验收', () => {
     expect(previewCardPlay(technical, craft)!.playerScore).toBe(previewCardPlay(gig, craft)!.playerScore + 1);
     expect(getRedrawPressureCost(gig)).toBe(0);
     expect(getRedrawPressureCost(technical)).toBe(1);
+  });
+
+  it('三个身份共享规则数值，但进入与处境相符的叙事地点', () => {
+    const elite = reduceGame(createGame(0), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
+    const technical = reduceGame(createGame(0), { type: 'START_PROTOTYPE', identityId: 'technical-worker' });
+    const gig = reduceGame(createGame(0), { type: 'START_PROTOTYPE', identityId: 'gig-worker' });
+
+    expect(getChapter(elite)?.location).toContain('会议室');
+    expect(getChapter(technical)?.location).toContain('站点办公室');
+    expect(getChapter(gig)?.location).toContain('平台服务中心');
+    expect(getChapter(elite)?.target).toBe(getChapter(gig)?.target);
+    expect(getChapter(technical)?.intents).toEqual(getChapter(gig)?.intents);
   });
 
   it('惯用手与三式两条打法都能越过合同困局', () => {
