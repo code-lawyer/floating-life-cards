@@ -1,0 +1,266 @@
+export type Approach = '洞察' | '行动' | '共情';
+export type ResourceKey = 'heart' | 'money' | 'bonds' | 'pressure';
+export type Phase =
+  | 'title'
+  | 'origin'
+  | 'growth'
+  | 'growth-result'
+  | 'deck'
+  | 'encounter'
+  | 'encounter-result'
+  | 'adult-event'
+  | 'adult-result'
+  | 'ending';
+
+export interface Resources {
+  heart: number;
+  money: number;
+  bonds: number;
+  pressure: number;
+}
+
+export interface Traits {
+  insight: number;
+  nerve: number;
+  empathy: number;
+}
+
+export interface CardEffect {
+  kind: 'resource' | 'draw' | 'echo' | 'steady';
+  resource?: ResourceKey;
+  amount?: number;
+  description: string;
+}
+
+export interface LifeCard {
+  id: string;
+  title: string;
+  approach: Approach;
+  power: number;
+  guard: number;
+  originAge: number | '出身' | '世界';
+  memory: string;
+  effect: CardEffect;
+  tags: string[];
+}
+
+export interface CostOption {
+  resource: ResourceKey;
+  amount: number;
+  text: string;
+}
+
+export interface GrowthChoice {
+  id: string;
+  verb: string;
+  detail: string;
+  approach: Approach;
+  trait: keyof Traits;
+  cards: Array<Omit<LifeCard, 'id' | 'originAge'>>;
+  costs: CostOption[];
+}
+
+export interface GrowthEvent {
+  age: number;
+  stage: string;
+  title: string;
+  text: string;
+  question: string;
+  choices: GrowthChoice[];
+}
+
+export interface Origin {
+  serial: string;
+  place: string;
+  household: string;
+  texture: string;
+  keepsake: string;
+  sentence: string;
+}
+
+export interface Intent {
+  id: string;
+  title: string;
+  approach: Approach;
+  power: number;
+  tell: string;
+  text: string;
+}
+
+export interface Chapter {
+  id: string;
+  year: number;
+  title: string;
+  location: string;
+  premise: string;
+  target: number;
+  rounds: number;
+  intents: Intent[];
+  victory: string;
+  setback: string;
+}
+
+export interface WorldClimate {
+  id: string;
+  title: string;
+  description: string;
+  approachBoost?: Approach;
+  worldPower?: number;
+}
+
+export interface AdultMark {
+  id: string;
+  title: string;
+  description: string;
+  tone: 'good' | 'bad' | 'mixed';
+  effect: {
+    kind: 'approach' | 'world' | 'first-round' | 'recovery' | 'redraw' | 'combo';
+    approach?: Approach;
+    amount: number;
+  };
+}
+
+export interface AdultEventRequirement {
+  resource: ResourceKey;
+  min: number;
+  text: string;
+}
+
+export interface AdultEventChoice {
+  id: string;
+  verb: string;
+  detail: string;
+  changes: Partial<Resources>;
+  trait?: keyof Traits;
+  requirement?: AdultEventRequirement;
+  mark?: AdultMark;
+  removeMark?: string;
+  upgradeCard?: boolean;
+  outcomes: string[];
+}
+
+export interface AdultEvent {
+  id: string;
+  afterChapter: number;
+  age: number;
+  category: string;
+  title: string;
+  text: string;
+  question: string;
+  choices: AdultEventChoice[];
+}
+
+export interface AdultEventSlot {
+  eventId: string;
+  afterChapter: number;
+  age: number;
+}
+
+export interface AdultEventResult {
+  eventId: string;
+  choice: string;
+  outcome: string;
+  changes: Partial<Resources>;
+  mark: AdultMark | null;
+  upgradedCardId: string | null;
+}
+
+export interface RoundRecord {
+  cardTitle: string;
+  intentTitle: string;
+  playerScore: number;
+  worldScore: number;
+  outcome: 'win' | 'loss' | 'draw';
+  text: string;
+  comboText?: string;
+  masteredCard?: string;
+}
+
+export interface CombatPreview {
+  playerScore: number;
+  worldScore: number;
+  relation: 'advantage' | 'disadvantage' | 'even';
+  comboText?: string;
+  triad: boolean;
+  approachHistory: Approach[];
+  modifiers: Array<{ label: string; value: number }>;
+}
+
+export interface EncounterState {
+  chapterIndex: number;
+  round: number;
+  progress: number;
+  drawPile: string[];
+  hand: string[];
+  discard: string[];
+  currentIntent: Intent;
+  climate: WorldClimate;
+  records: RoundRecord[];
+  redrawUsed: boolean;
+  approachHistory: Approach[];
+  resolved: boolean;
+  won: boolean;
+}
+
+export interface JournalEntry {
+  stamp: string;
+  title: string;
+  body: string;
+  tone?: 'good' | 'bad' | 'plain';
+}
+
+export interface GrowthResult {
+  age: number;
+  choice: string;
+  card: LifeCard;
+  cost: CostOption;
+  text: string;
+}
+
+export interface Ending {
+  title: string;
+  kicker: string;
+  text: string;
+  postscript: string;
+}
+
+export interface GameState {
+  version: 2;
+  seed: number;
+  rng: number;
+  phase: Phase;
+  origin: Origin | null;
+  age: number;
+  resources: Resources;
+  traits: Traits;
+  cards: LifeCard[];
+  selectedDeck: string[];
+  growthResult: GrowthResult | null;
+  encounter: EncounterState | null;
+  chapterResults: boolean[];
+  adultSchedule: AdultEventSlot[];
+  adultEventsResolved: string[];
+  activeAdultEventId: string | null;
+  adultEventResult: AdultEventResult | null;
+  marks: AdultMark[];
+  cardExperience: Record<string, number>;
+  upgradedCards: string[];
+  journal: JournalEntry[];
+  ending: Ending | null;
+}
+
+export type GameAction =
+  | { type: 'BEGIN' }
+  | { type: 'ACCEPT_ORIGIN' }
+  | { type: 'REROLL_ORIGIN' }
+  | { type: 'CHOOSE_GROWTH'; choiceId: string }
+  | { type: 'CONTINUE_GROWTH' }
+  | { type: 'TOGGLE_DECK'; cardId: string }
+  | { type: 'AUTO_DECK' }
+  | { type: 'BEGIN_ADVENTURE' }
+  | { type: 'PLAY_CARD'; cardId: string; judgeText?: string }
+  | { type: 'REDRAW_HAND' }
+  | { type: 'CONTINUE_ADVENTURE' }
+  | { type: 'CHOOSE_ADULT_EVENT'; choiceId: string }
+  | { type: 'CONTINUE_ADULT_EVENT' }
+  | { type: 'RESTART'; seed?: number };
