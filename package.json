@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "analyze:prototype": "tsx scripts/analyze-prototype.ts",
+    "validate:playtest": "tsx scripts/validate-playtest-batch.ts",
     "dev": "vite",
     "judge": "node scripts/judge-server.mjs",
     "build": "tsc -b && vite build",
