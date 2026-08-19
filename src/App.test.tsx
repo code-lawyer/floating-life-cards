@@ -229,7 +229,8 @@ describe('玩家入口', () => {
     const download = screen.getByRole('link', { name: '下载本局试玩记录' });
     expect(download).toHaveAttribute('download', '浮生牌局-灵活就业者-试玩记录.md');
     const href = download.getAttribute('href')!;
-    expect(decodeURIComponent(href)).toContain('- 构建版本：1.4.0');
+    expect(decodeURIComponent(href)).toMatch(/- 构建版本：\d+\.\d+\.\d+/);
+    expect(decodeURIComponent(href)).toContain('- 匿名记录编号（主持人填写）：');
     expect(decodeURIComponent(href)).toContain('- 试玩身份：灵活就业者');
   });
 

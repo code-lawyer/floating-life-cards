@@ -32,7 +32,7 @@ npm run verify
 npm run playtest
 ```
 
-命令会先生成生产构建，再显示本机与同一局域网可访问的地址。局域网手机若无法使用剪贴板，可在结案页直接下载带 `1.4.0` 构建版本的Markdown记录。完整主持流程见 [docs/production/PLAYTEST_RUNBOOK.md](./docs/production/PLAYTEST_RUNBOOK.md)。
+命令会先生成生产构建，再显示本机与同一局域网可访问的地址。局域网手机若无法使用剪贴板，可在结案页直接下载带当前构建版本的Markdown记录。完整主持流程见 [docs/production/PLAYTEST_RUNBOOK.md](./docs/production/PLAYTEST_RUNBOOK.md)。
 
 ## 玩法速览
 

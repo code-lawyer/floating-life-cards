@@ -31,7 +31,7 @@ test('玩家能以职校技术员完成合同困局、复制客观记录并用�
   expect(copiedRecord).toContain('# 《浮生牌局》成年困局试玩客观记录');
   expect(copiedRecord).toContain('- 试玩身份：职校技术员');
   expect(copiedRecord).toContain('不包含试玩者姓名、联系方式或访谈回答');
-  expect(copiedRecord).toContain('- 构建版本：1.4.0');
+  expect(copiedRecord).toMatch(/- 构建版本：\d+\.\d+\.\d+/);
   expect(copiedRecord).toMatch(/\| 1 \| .+ \| .+ \| \d+ : \d+ \| (推进|僵持|受挫) \|/);
 
   const downloadPromise = page.waitForEvent('download');

@@ -96,7 +96,7 @@ stateDiagram-v2
 
 ## 制作试玩记录接缝
 
-`playtestRecord.ts` 只暴露 `formatPrototypePlaytestRecord(state)`。它接受已经结案的成人原型状态，生成包含包版本、身份、固定种子、终局资源、换手/余温和逐轮事实的Markdown；正式故事、未结困局或无效身份返回 `null`。版本从 `package.json` 单一来源读取。模块不读取浏览器、不联网，也不接收姓名、联系方式或访谈答案。React只负责提供同内容的剪贴板与Markdown下载入口，并显示复制成功或权限失败反馈。
+`playtestRecord.ts` 只暴露 `formatPrototypePlaytestRecord(state)`。它接受已经结案的成人原型状态，生成包含包版本、待主持人填写的匿名编号、身份、固定种子、终局资源、换手/余温和逐轮事实的Markdown；正式故事、未结困局或无效身份返回 `null`。版本从 `package.json` 单一来源读取。模块不读取浏览器、不联网，也不接收姓名、联系方式或访谈答案。React只负责提供同内容的剪贴板与Markdown下载入口，并显示复制成功或权限失败反馈。
 
 `npm run playtest` 先执行生产构建，再以Vite preview在固定4173端口监听本机与局域网地址。它只用于同一可信局域网内的现场试玩，不是预览部署或公网发布配置。
 

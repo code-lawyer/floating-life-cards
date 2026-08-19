@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
 
 test.use({ viewport: { width: 390, height: 844 } });
@@ -37,5 +38,13 @@ test('390像素玩家能用童年余温完成困局并在结案下载记录', as
   }
   await expect(download).toBeVisible();
   await expect(download).toHaveAttribute('download', '浮生牌局-灵活就业者-试玩记录.md');
+  const downloadPromise = page.waitForEvent('download');
+  await download.click();
+  const downloadedRecord = await downloadPromise;
+  const downloadedPath = await downloadedRecord.path();
+  expect(downloadedPath).not.toBeNull();
+  const recordText = await readFile(downloadedPath!, 'utf8');
+  expect(recordText).toContain('- 试玩身份：灵活就业者');
+  expect(recordText).toMatch(/- 构建版本：\d+\.\d+\.\d+/);
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 390);
 });

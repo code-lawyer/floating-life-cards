@@ -27,6 +27,7 @@ export function formatPrototypePlaytestRecord(state: GameState): string | null {
 > 由本机结案状态生成，不联网，不包含试玩者姓名、联系方式或访谈回答。
 
 - 构建版本：${packageInfo.version}
+- 匿名记录编号（主持人填写）：
 - 试玩身份：${identity.title}
 - 身份被动：${identity.passiveText}
 - 原型种子：${state.seed}
