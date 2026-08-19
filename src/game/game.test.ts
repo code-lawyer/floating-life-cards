@@ -90,6 +90,7 @@ describe('浮生牌局规则模块', () => {
 
   it('成长牌与所选做法同型，并拒绝非法阶段行动', () => {
     let state = acceptOrigin();
+    expect(reduceGame(state, { type: 'BEGIN' })).toBe(state);
     const event = getGrowthEvent(state)!;
     const selected = event.choices[1]!;
     state = reduceGame(state, { type: 'CHOOSE_GROWTH', choiceId: selected.id });
@@ -269,22 +270,23 @@ describe('浮生牌局规则模块', () => {
   });
 
   it('可以从出生完整推进到一种成年结局', () => {
-    let state = growUp(777);
-    state = {
-      ...state,
-      resources: { ...state.resources, heart: 9 },
-      traits: { insight: 20, nerve: 20, empathy: 20 },
-    };
+    let state = growUp(851);
+    expect(state.traits.insight + state.traits.nerve + state.traits.empathy).toBe(14);
     state = reduceGame(state, { type: 'BEGIN_ADVENTURE' });
     let safety = 0;
     while (state.phase !== 'ending' && safety < 200) {
       if (state.phase === 'encounter') {
-        state = reduceGame(state, { type: 'PLAY_CARD', cardId: state.encounter!.hand[0]! });
+        const bestCard = state.encounter!.hand
+          .map((cardId) => state.cards.find((card) => card.id === cardId)!)
+          .sort((left, right) => previewCardPlay(state, right)!.playerScore - previewCardPlay(state, left)!.playerScore)[0]!;
+        state = reduceGame(state, { type: 'PLAY_CARD', cardId: bestCard.id });
       } else if (state.phase === 'encounter-result') {
         state = reduceGame(state, { type: 'CONTINUE_ADVENTURE' });
       } else if (state.phase === 'adult-event') {
         const event = getAdultEvent(state)!;
-        const choice = event.choices.find((item) => canChooseAdultChoice(state, item))!;
+        const choice = event.choices
+          .filter((item) => canChooseAdultChoice(state, item))
+          .sort((left, right) => (right.changes.heart ?? 0) - (left.changes.heart ?? 0))[0]!;
         state = reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: choice.id });
       } else if (state.phase === 'adult-result') {
         state = reduceGame(state, { type: 'CONTINUE_ADULT_EVENT' });

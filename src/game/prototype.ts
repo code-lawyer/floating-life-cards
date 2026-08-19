@@ -1,6 +1,11 @@
-import type { Chapter, LifeCard, StartingIdentityId } from './types';
+import type { Chapter, LifeCard, StartingIdentityId, WorldClimate } from './types';
 
 export const PROTOTYPE_SEED = 0x24c0ffee;
+export const PROTOTYPE_CLIMATE: WorldClimate = {
+  id: 'prototype-neutral',
+  title: '固定测试条件',
+  description: '本轮原型不启用时代气候加成，只比较身份、记忆牌与合同规则。',
+};
 
 export const PROTOTYPE_CARDS: LifeCard[] = [
   {
@@ -67,11 +72,11 @@ export const PROTOTYPE_DECK_IDS = [
 ];
 
 const PROTOTYPE_INTENTS: Chapter['intents'] = [
-  { id: 'contract-family', title: '先谈前景', approach: '共情', power: 4, tell: '对方先说“我们是一家人”，始终没有打开合同。', text: '亲近的语言试图替具体条件占住位置。' },
-  { id: 'contract-scope', title: '责任空白', approach: '洞察', power: 5, tell: '工作范围只写了“及其他安排”。', text: '没有边界的句子准备把所有例外变成日常。' },
-  { id: 'contract-now', title: '当场签字', approach: '行动', power: 5, tell: '笔被推到你面前，下一位已经在门外等。', text: '仓促本身正在成为条件的一部分。' },
-  { id: 'contract-everyone', title: '大家都签了', approach: '共情', power: 6, tell: '同伴的名字被当作同意条件的理由。', text: '群体的沉默被包装成你的答案。' },
-  { id: 'contract-last-page', title: '最后一页', approach: '洞察', power: 6, tell: '真正影响收入与退出的条款藏在末页。', text: '最重要的数字终于离开了漂亮话。' },
+  { id: 'contract-family', title: '先谈前景', approach: '共情', power: 3, tell: '对方先说“我们是一家人”，始终没有打开合同。', text: '亲近的语言试图替具体条件占住位置。' },
+  { id: 'contract-scope', title: '责任空白', approach: '洞察', power: 4, tell: '工作范围只写了“及其他安排”。', text: '没有边界的句子准备把所有例外变成日常。' },
+  { id: 'contract-now', title: '当场签字', approach: '行动', power: 4, tell: '笔被推到你面前，下一位已经在门外等。', text: '仓促本身正在成为条件的一部分。' },
+  { id: 'contract-everyone', title: '大家都签了', approach: '共情', power: 5, tell: '同伴的名字被当作同意条件的理由。', text: '群体的沉默被包装成你的答案。' },
+  { id: 'contract-last-page', title: '最后一页', approach: '洞察', power: 5, tell: '真正影响收入与退出的条款藏在末页。', text: '最重要的数字终于离开了漂亮话。' },
 ];
 
 const PROTOTYPE_NARRATIVE: Record<StartingIdentityId, Pick<Chapter, 'location' | 'premise' | 'victory' | 'setback'>> = {

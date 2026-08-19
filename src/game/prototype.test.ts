@@ -73,6 +73,13 @@ describe('成年困局原型验收', () => {
     expect(getChapter(technical)?.intents).toEqual(getChapter(gig)?.intents);
   });
 
+  it('合同原型使用固定中性条件，不引入正式故事的随机时代气候', () => {
+    const state = reduceGame(createGame(0), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
+
+    expect(state.encounter?.climate.id).toBe('prototype-neutral');
+    expect(state.encounter?.climate.worldPower).toBeUndefined();
+  });
+
   it('惯用手与三式两条打法都能越过合同困局', () => {
     const practiced = playPrototype('technical-worker', practicedStrategy);
     const triad = playPrototype('technical-worker', triadStrategy);

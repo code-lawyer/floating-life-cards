@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { createGame, getGrowthEvent, reduceGame } from './game/game';
-import { saveGame } from './game/persistence';
+import { loadGame, saveGame } from './game/persistence';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
 import type { GameState, StartingIdentityId } from './game/types';
 
@@ -31,11 +31,13 @@ function saveResolvedPrototype(
     phase: 'encounter-result',
     encounter: { ...initial.encounter!, resolved: true, won: false, ...encounterOverrides },
   });
+  window.history.replaceState({}, '', '/?playtest=adult-prototype');
 }
 
 describe('玩家入口', () => {
   it('成年原型试玩地址只展示身份入口，不允许误入童年主流程', () => {
-    saveGame(reduceGame(createGame(7), { type: 'BEGIN' }));
+    const story = reduceGame(createGame(7), { type: 'BEGIN' });
+    saveGame(story);
     window.history.replaceState({}, '', '/?playtest=adult-prototype');
 
     render(<App />);
@@ -45,6 +47,18 @@ describe('玩家入口', () => {
     expect(screen.getByRole('button', { name: '以名校毕业生开始原型' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '以职校技术员开始原型' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '以灵活就业者开始原型' })).toBeEnabled();
+    expect(loadGame()).toEqual(story);
+  });
+
+  it('成年原型试玩地址只恢复当前构建的原型进度', () => {
+    const prototype = reduceGame(createGame(8), { type: 'START_PROTOTYPE', identityId: 'elite-graduate' });
+    saveGame(prototype);
+    window.history.replaceState({}, '', '/?playtest=adult-prototype');
+
+    render(<App />);
+
+    expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '起手身份' })).toHaveTextContent('名校毕业生');
   });
 
   it('从标题页进入普通人出生档案', () => {
@@ -75,6 +89,8 @@ describe('玩家入口', () => {
     expect(screen.getByText('职校技术员')).toBeInTheDocument();
     expect(screen.getByText('签字倒计时')).toBeInTheDocument();
     expect(screen.getByText(/从第二轮起，每过一轮/)).toBeInTheDocument();
+    expect(screen.queryByText('时代气候')).not.toBeInTheDocument();
+    expect(screen.getByText(/唤起不会消耗记忆牌；本场结束后，全部记忆会回到你的应对组/)).toBeInTheDocument();
   });
 
   it('设置先展示玩家叙事状态，再按需展开开发者接入', () => {
@@ -204,6 +220,19 @@ describe('玩家入口', () => {
     expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
     expect(screen.getByText('第 1 / 5 轮')).toBeInTheDocument();
     expect(screen.getByText('灵活就业者')).toBeInTheDocument();
+  });
+
+  it('原型结案返回身份入口时只清除原型进度并保留正式故事', () => {
+    const story = reduceGame(createGame(19), { type: 'BEGIN' });
+    saveGame(story);
+    saveResolvedPrototype('elite-graduate');
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '返回标题，换一个身份' }));
+
+    expect(screen.getByRole('heading', { name: '成年困局规则试玩' })).toBeInTheDocument();
+    expect(loadGame('prototype')).toBeNull();
+    expect(loadGame('story')).toEqual(story);
   });
 
   it('成年困局原型结案后可复制不含个人信息的客观试玩记录', async () => {

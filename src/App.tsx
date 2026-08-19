@@ -13,12 +13,14 @@ import {
   reduceGame,
 } from './game/game';
 import { requestJudgeNarration } from './game/judge';
-import { getStartingIdentity, STARTING_IDENTITIES } from './game/identities';
+import { getStartingIdentity } from './game/identities';
 import { clearSave, loadGame, saveGame } from './game/persistence';
-import { formatPrototypePlaytestRecord } from './game/playtestRecord';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
+import { AgeRail } from './components/AgeRail';
+import { EncounterResultScreen } from './screens/EncounterResultScreen';
+import { TitleScreen } from './screens/TitleScreen';
 import type { ReactNode } from 'react';
-import type { Approach, AdultMark, GameState, LifeCard, ResourceKey, StartingIdentityId } from './game/types';
+import type { Approach, AdultMark, GameState, LifeCard, ResourceKey } from './game/types';
 
 const RESOURCE_META: Record<ResourceKey, { label: string; sign: string; inverse?: boolean }> = {
   heart: { label: '心气', sign: '心' },
@@ -44,9 +46,8 @@ function isAdultPrototypePlaytest(): boolean {
 }
 
 function initialState(): GameState {
-  const saved = loadGame();
-  if (isAdultPrototypePlaytest() && saved?.mode !== 'prototype') return createGame();
-  return saved ?? createGame();
+  const playtest = isAdultPrototypePlaytest();
+  return loadGame(playtest ? 'prototype' : 'story') ?? createGame();
 }
 
 function ResourceStrip({ state }: { state: GameState }) {
@@ -115,74 +116,6 @@ function CardFace({ card, selected, disabled, onClick, actionPrefix, describedBy
     );
   }
   return <article className="life-card">{content}</article>;
-}
-
-function AgeRail({ age, label }: { age: number | string; label: string }) {
-  return (
-    <aside className="age-rail" aria-label={`${age} 岁，${label}`}>
-      <span className="age-rail__number">{age}</span>
-      <span className="age-rail__label">岁 / {label}</span>
-    </aside>
-  );
-}
-
-function TitleScreen({ onStart, onGuide, onPrototype, playtestOnly }: {
-  onStart: () => void;
-  onGuide: () => void;
-  onPrototype: (identityId: StartingIdentityId) => void;
-  playtestOnly: boolean;
-}) {
-  if (playtestOnly) {
-    return (
-      <main className="title-screen title-screen--playtest">
-        <div className="title-screen__register" aria-hidden="true">P1 / 成年牌局 / 固定身份</div>
-        <p className="eyebrow">阶段 1 · 核心规则验证</p>
-        <h1>浮生<br />牌局</h1>
-        <section className="prototype-entry prototype-entry--playtest" aria-labelledby="prototype-entry-title">
-          <header><span>本轮试玩入口</span><h2 id="prototype-entry-title">成年困局规则试玩</h2></header>
-          <p>本轮不会经历童年，也不会根据童年生成身份。请按主持人分配，选择一个固定起手身份，直接进入24岁的合同牌局。</p>
-          <div>
-            {STARTING_IDENTITIES.map((identity) => (
-              <button key={identity.id} onClick={() => onPrototype(identity.id)} aria-label={`以${identity.title}开始原型`}>
-                <b>{identity.title}</b><span>{identity.passiveText}</span>
-              </button>
-            ))}
-          </div>
-          <button className="text-button prototype-entry__guide" onClick={onGuide}>先读成年牌局规则</button>
-        </section>
-      </main>
-    );
-  }
-
-  return (
-    <main className="title-screen">
-      <div className="title-screen__register" aria-hidden="true">出生登记 / 未定级 / 普通人</div>
-      <p className="eyebrow">一款纯文字成长牌局</p>
-      <h1>浮生<br />牌局</h1>
-      <p className="title-screen__thesis">从四岁开始，<br />为十八岁后的自己攒一手牌。</p>
-      <div className="title-screen__rule">
-        <p>没有天选身份。</p>
-        <p>每次选择都会留下牌，也会收走一点什么。</p>
-        <p>世界不保证公平，但承认你出过的每一张牌。</p>
-      </div>
-      <div className="title-actions">
-        <button className="primary-button primary-button--large" onClick={onStart}>登记出生</button>
-        <button className="text-button" onClick={onGuide}>先读玩法说明</button>
-      </div>
-      <p className="title-screen__save-note">进度自动保存在本机 · 单局约 35–50 分钟</p>
-      <section className="prototype-entry" aria-labelledby="prototype-entry-title">
-        <header><span>制作中 · 规则试玩</span><h2 id="prototype-entry-title">直接进入成年牌局</h2></header>
-        <p>跳过童年，用同一副固定记忆比较三个起手身份。此入口只用于验证核心玩法。</p>
-        <div>
-          {STARTING_IDENTITIES.map((identity) => (
-            <button key={identity.id} onClick={() => onPrototype(identity.id)} aria-label={`以${identity.title}开始原型`}>
-              <b>{identity.title}</b><span>{identity.passiveText}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
 }
 
 function OriginScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
@@ -424,17 +357,25 @@ function EncounterScreen({ state, dispatch, endpoint }: {
           <span>起手身份</span><b>{identity.title}</b><p>{identity.passiveText}</p>
         </section>
       )}
+      {state.mode === 'prototype' && (
+        <section className="identity-line" aria-label="永久记忆规则">
+          <span>记忆不会被消耗</span>
+          <p>唤起不会消耗记忆牌；本场结束后，全部记忆会回到你的应对组。童年余温只是把本场已经用过的一张牌提前召回。</p>
+        </section>
+      )}
       {chapter.rule && (
         <section className="encounter-rule" aria-label="本局规则">
           <span>本局规则</span><b>{chapter.rule.title}</b><p>{chapter.rule.description}</p>
         </section>
       )}
-      <section className="climate-line">
-        <span>时代气候</span>
-        <b>{encounter.climate.title}</b>
-        <p>{encounter.climate.description}</p>
-        {state.marks.length > 0 && <div className="mark-inline">{state.marks.map((mark) => <LifeMarkTag mark={mark} key={mark.id} />)}</div>}
-      </section>
+      {state.mode === 'story' && (
+        <section className="climate-line">
+          <span>时代气候</span>
+          <b>{encounter.climate.title}</b>
+          <p>{encounter.climate.description}</p>
+          {state.marks.length > 0 && <div className="mark-inline">{state.marks.map((mark) => <LifeMarkTag mark={mark} key={mark.id} />)}</div>}
+        </section>
+      )}
       {tutorialActive && tutorialStep === 0 && encounter.records.length === 0 && (
         <section className="duel-coach" aria-labelledby="duel-coach-title">
           <span>第一次上桌 · 第一步</span>
@@ -490,7 +431,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
             <section className="warmth-tool" aria-label="童年余温">
               <div>
                 <b>童年余温</b>
-                <span>每场一次：从回忆堆找回一张牌，压力 −1。</span>
+                <span>每场一次：从本场已经用过的回忆堆找回一张牌，压力 −1；牌本身不会永久消失。</span>
               </div>
               {encounter.warmthUsed ? (
                 <div className="warmth-tool__recalled" role="status">
@@ -561,77 +502,6 @@ function EncounterScreen({ state, dispatch, endpoint }: {
           {pendingCard && <p className="judge-wait" role="status">裁判正在落笔…</p>}
         </section>
       </div>
-    </main>
-  );
-}
-
-function EncounterResultScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
-  const [recordCopyStatus, setRecordCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
-  const chapter = getChapter(state)!;
-  const encounter = state.encounter!;
-  const identity = getStartingIdentity(state.startingIdentity);
-  const playtestRecord = formatPrototypePlaytestRecord(state);
-  const exhausted = state.resources.heart <= 0;
-  const hasPendingLife = state.adultSchedule.some((slot) => slot.afterChapter === encounter.chapterIndex && !state.adultEventsResolved.includes(slot.eventId));
-  const finalChapter = encounter.chapterIndex === CHAPTERS.length - 1;
-  const copyPlaytestRecord = async () => {
-    if (!playtestRecord || !navigator.clipboard) {
-      setRecordCopyStatus('failed');
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(playtestRecord);
-      setRecordCopyStatus('copied');
-    } catch {
-      setRecordCopyStatus('failed');
-    }
-  };
-  return (
-    <main className="screen encounter-result">
-      <AgeRail age={chapter.year} label="结案" />
-      <section className="screen__body">
-        <p className="eyebrow">{encounter.won ? '局面越过' : '局面未解'} · {encounter.progress} / {chapter.target}</p>
-        <h1 className="display-title">{encounter.won ? '这一次，世界让了一步' : '你没有赢，但故事没有停'}</h1>
-        <p className="lead">{encounter.won ? chapter.victory : chapter.setback}</p>
-        <div className="round-ledger">
-          {encounter.records.map((record, index) => (
-            <div key={`${record.cardTitle}-${index}`}>
-              <span>第 {index + 1} 轮</span>
-              <b>{record.cardTitle}</b>
-              <span>对 {record.intentTitle}</span>
-              <strong>{record.playerScore} : {record.worldScore}</strong>
-              <em>{record.outcome === 'win' ? '推进' : record.outcome === 'draw' ? '僵持' : '受挫'}</em>
-            </div>
-          ))}
-        </div>
-        {state.mode === 'prototype' && identity ? (
-          <div className="prototype-result-actions">
-            <p>制作原型使用固定种子与牌组；重新开始后，唯一变量仍是你的出牌选择。</p>
-            <button className="primary-button" onClick={() => dispatch({ type: 'RESTART_PROTOTYPE' })}>用{identity.title}再试一次</button>
-            <button className="text-button" onClick={() => void copyPlaytestRecord()}>复制本局试玩记录</button>
-            {playtestRecord && (
-              <a
-                className="text-button download-link"
-                download={`浮生牌局-${identity.title}-试玩记录.md`}
-                href={`data:text/markdown;charset=utf-8,${encodeURIComponent(playtestRecord)}`}
-              >下载本局试玩记录</a>
-            )}
-            <button className="text-button" onClick={() => dispatch({ type: 'RESTART', seed: state.seed })}>返回标题，换一个身份</button>
-            {recordCopyStatus !== 'idle' && (
-              <p role="status">{recordCopyStatus === 'copied'
-                ? '本局记录已复制，可粘贴到试玩模板。'
-                : '未能访问剪贴板，请允许浏览器复制权限后重试。'}</p>
-            )}
-          </div>
-        ) : (
-          <>
-            {!finalChapter && !exhausted && <p className="recovery-note">进入下一场牌局前：基础恢复 2 点心气、降低 1 点压力；人生状态可能改变恢复量。</p>}
-            <button className="primary-button" onClick={() => dispatch({ type: 'CONTINUE_ADVENTURE' })}>
-              {exhausted ? '翻到人生档案末页' : hasPendingLife ? '离开牌桌，继续生活' : finalChapter ? '翻到人生档案末页' : `继续到 ${CHAPTERS[encounter.chapterIndex + 1]!.year} 岁`}
-            </button>
-          </>
-        )}
-      </section>
     </main>
   );
 }
@@ -834,6 +704,7 @@ function GameGuide({ onClose }: { onClose: () => void }) {
             <li>连续使用同一种做法：触发“惯用手”，本轮 +1。</li>
             <li>最近三轮恰好包含三种做法：触发“三式合流”，本轮 +3、压力 −1。</li>
             <li>同一张牌累计使用两次：完成淬炼，此后永久牌力 +1。</li>
+            <li>记忆牌不会被永久消耗；每场结束后都会回到应对组。童年余温只负责在当前场次提前召回一张已用牌。</li>
             <li>每场可换手一次，通常压力 +1；时代气候和人生状态会继续修改规则。</li>
           </ul>
         </section>
@@ -962,7 +833,10 @@ export function App() {
   const openGuide = useCallback(() => setGuideOpen(true), []);
   const closeGuide = useCallback(() => setGuideOpen(false), []);
 
-  useEffect(() => saveGame(state), [state]);
+  useEffect(() => {
+    if (adultPrototypePlaytest && state.mode === 'story' && state.phase === 'title') return;
+    saveGame(state);
+  }, [adultPrototypePlaytest, state]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -975,8 +849,13 @@ export function App() {
 
   function reset() {
     if (!window.confirm('确定重开吗？当前人生档案会被覆盖。')) return;
-    clearSave();
+    clearSave(state.mode);
     dispatch({ type: 'RESTART' });
+  }
+
+  function exitPrototype() {
+    clearSave('prototype');
+    dispatch({ type: 'RESTART', seed: state.seed });
   }
 
   return (
@@ -990,7 +869,7 @@ export function App() {
         {state.phase === 'growth-result' && <GrowthResultScreen state={state} dispatch={dispatch} />}
         {state.phase === 'deck' && <DeckScreen state={state} dispatch={dispatch} />}
         {state.phase === 'encounter' && <EncounterScreen state={state} dispatch={dispatch} endpoint={endpoint} />}
-        {state.phase === 'encounter-result' && <EncounterResultScreen state={state} dispatch={dispatch} />}
+        {state.phase === 'encounter-result' && <EncounterResultScreen state={state} dispatch={dispatch} onExitPrototype={exitPrototype} />}
         {state.phase === 'adult-event' && <AdultEventScreen state={state} dispatch={dispatch} />}
         {state.phase === 'adult-result' && <AdultResultScreen state={state} dispatch={dispatch} />}
         {state.phase === 'ending' && <EndingScreen state={state} dispatch={dispatch} />}

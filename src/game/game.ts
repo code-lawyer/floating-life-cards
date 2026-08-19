@@ -1,6 +1,6 @@
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
 import { getIdentityCardBonus, identityMakesFirstRedrawFree } from './identities';
-import { getPrototypeChapter, PROTOTYPE_CARDS, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
+import { getPrototypeChapter, PROTOTYPE_CARDS, PROTOTYPE_CLIMATE, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
 import { shuffle, takeOne } from './rng';
 import type {
   Approach,
@@ -17,6 +17,7 @@ import type {
   LifeCard,
   Resources,
   StartingIdentityId,
+  WorldClimate,
 } from './types';
 
 const MAX_RESOURCE = 9;
@@ -158,14 +159,18 @@ function refillHand(encounter: EncounterState, target: number, rng: number): [En
   return [{ ...encounter, drawPile, memoryPile, hand }, next];
 }
 
-function startEncounter(state: GameState, chapterIndex: number): GameState {
+function startEncounter(state: GameState, chapterIndex: number, fixedClimate?: WorldClimate): GameState {
   const chapter = getChapterAt(state, chapterIndex);
   if (!chapter) return state;
   let drawPile: string[];
   let rng: number;
   [drawPile, rng] = shuffle(state.selectedDeck, state.rng);
-  let climate: (typeof WORLD_CLIMATES)[number];
-  [climate, rng] = takeOne(WORLD_CLIMATES, rng);
+  let climate: WorldClimate;
+  if (fixedClimate) {
+    climate = fixedClimate;
+  } else {
+    [climate, rng] = takeOne(WORLD_CLIMATES, rng);
+  }
   let encounter: EncounterState = {
     chapterIndex,
     round: 1,
@@ -207,7 +212,7 @@ function startPrototype(identityId: StartingIdentityId): GameState {
     cards: PROTOTYPE_CARDS,
     selectedDeck: PROTOTYPE_DECK_IDS,
     journal: [{ stamp: '24 岁 · 原型', title: '合同上没有写的事', body: '跳过童年流程，使用固定记忆与身份进入同一场制作验证。', tone: 'plain' }],
-  }, 0);
+  }, 0, PROTOTYPE_CLIMATE);
 }
 
 function buildAdultSchedule(state: GameState): [GameState['adultSchedule'], number] {
@@ -351,7 +356,7 @@ function endingFor(state: GameState): Ending {
 export function reduceGame(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case 'BEGIN':
-      return rollOrigin(createGame(state.seed));
+      return state.phase === 'title' ? rollOrigin(createGame(state.seed)) : state;
     case 'REROLL_ORIGIN':
       return state.phase === 'origin' ? rollOrigin(state) : state;
     case 'ACCEPT_ORIGIN': {
