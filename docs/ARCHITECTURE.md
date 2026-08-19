@@ -90,7 +90,7 @@ stateDiagram-v2
 
 ## 制作分析接缝
 
-`prototypeAnalysis.ts` 对制作工具只暴露 `analyzePrototype(identityId)`。调用者提供一个起手身份，就会得到固定成年原型的开局选项、可达结果范围、最短胜利轮数以及童年余温/换手是否出现在可胜路线。实现内部枚举合法 `GameAction`，所有状态转换仍调用 `reduceGame`，不维护第二套得分或补牌规则。
+`prototypeAnalysis.ts` 对制作工具的唯一行为入口是 `analyzePrototype(identityId)`，并导出 `PrototypeDecisionReport`、`PrototypeOpeningOption`、`PrototypeOutcomeEnvelope` 三个返回结构类型。调用者提供一个起手身份，就会得到固定成年原型的开局选项、可达结果范围、最短胜利轮数以及童年余温/换手是否出现在可胜路线。实现内部生成候选 `GameAction`，以 `reduceGame` 是否改变状态作为唯一合法性裁判，不维护第二套得分、补牌或次数限制规则。
 
 `scripts/analyze-prototype.ts` 只是命令行适配器，把三个身份的报告排成制作表格；它不参与游戏运行。工具源码与游戏规则一起接受TypeScript严格检查。
 
