@@ -100,7 +100,7 @@ stateDiagram-v2
 
 `npm run playtest` 先执行生产构建，再以Vite preview在固定4173端口监听本机与局域网地址。它只用于同一可信局域网内的现场试玩，不是预览部署或公网发布配置。
 
-`playtestBatch.ts` 对制作工具暴露 `validatePlaytestBatch(markdownRecords)`，并导出输入、单份摘要与批次结果类型。它只读取客观记录Markdown文本，检查三份记录、构建版本、匿名编号、三个身份以及声明回合与逐轮事实是否一致；不会读取玩家姓名、推断选择理由或替代真人综合判断。`scripts/validate-playtest-batch.ts` 是本地文件系统适配器，`npm run validate:playtest -- <证据目录>` 以中文报告结果并在无效批次时返回非零退出码。该工具不被React导入，不改变冻结试玩构建。
+`playtestBatch.ts` 对制作工具暴露 `validatePlaytestBatch(markdownRecords)`，并导出输入、单份摘要与批次结果类型。命令行适配器传入证据目录中的Markdown；模块只用标题识别客观记录，其他观察笔记在分类后被忽略，不解析字段、不输出内容。它检查三份客观记录、构建版本、匿名编号、三个身份以及声明回合与逐轮事实是否一致，不推断选择理由或替代真人综合判断。`scripts/validate-playtest-batch.ts` 是本地文件系统适配器，`npm run validate:playtest -- <证据目录>` 以中文报告结果并在无效批次时返回非零退出码。该工具不被React导入，不改变冻结试玩构建。
 
 ## 存档策略
 
