@@ -55,6 +55,7 @@ v2 尚未证明的最大风险是：
 - PROTOTYPE_BALANCE_ANALYSIS.md：三身份决策空间穷举、数值死路检查与证据边界。
 - PLAYTEST_TEMPLATE.md：3–5名目标玩家的现场规则试玩记录表。
 - PLAYTEST_RUNBOOK.md：非开发者可执行的局域网启动、三人分配、主持、匿名记录与中止流程。
+- PLAYTEST_SYNTHESIS.md：阶段1三人样本的预注册通过门槛、问题排序、单点调整与版本隔离规则。
 - WORKING_AGREEMENT.md：双方角色、决策权限和汇报方式。
 - ../v2/README.md：v2 产品、玩法、属性、内容与技术设计。
 
