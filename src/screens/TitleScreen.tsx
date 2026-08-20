@@ -34,7 +34,10 @@ export function TitleScreen({ onStart, onGuide, onPrototype, playtestOnly }: {
       <img
         className="title-key-art"
         src="./art/title-key-art-v1.webp"
-        alt="童年记忆与成年档案交叠的城市书桌"
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+        fetchPriority="high"
       />
       <div className="title-screen__register" aria-hidden="true">出生登记 / 未定级 / 普通人</div>
       <p className="eyebrow">一款人生故事与选择牌局</p>
@@ -50,17 +53,6 @@ export function TitleScreen({ onStart, onGuide, onPrototype, playtestOnly }: {
         <button className="text-button" onClick={onGuide}>先读玩法说明</button>
       </div>
       <p className="title-screen__save-note">进度自动保存在本机 · 单局约 35–50 分钟</p>
-      <section className="prototype-entry" aria-labelledby="prototype-entry-title">
-        <header><span>制作中 · 规则试玩</span><h2 id="prototype-entry-title">直接进入成年牌局</h2></header>
-        <p>跳过童年，用同一副固定记忆比较三个起手身份。此入口只用于验证核心玩法。</p>
-        <div>
-          {STARTING_IDENTITIES.map((identity) => (
-            <button key={identity.id} onClick={() => onPrototype(identity.id)} aria-label={`以${identity.title}开始原型`}>
-              <b>{identity.title}</b><span>{identity.passiveText}</span>
-            </button>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }

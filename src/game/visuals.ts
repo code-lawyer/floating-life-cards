@@ -1,7 +1,6 @@
 export type StaticSceneVisualId = 'origin' | 'growth-archive' | 'contract-table' | 'deck' | 'ending';
 export type SceneVisualId = StaticSceneVisualId | `growth-${number}` | `chapter-${string}` | `adult-${string}`;
 export type SceneTone = 'childhood' | 'threshold' | 'adult' | 'aftermath';
-export type ChoiceFocalPoints = readonly [string, string, string, string];
 
 export interface SceneVisual {
   id: SceneVisualId;
@@ -11,20 +10,18 @@ export interface SceneVisual {
   desktopPosition: string;
   mobilePosition: string;
   tone: SceneTone;
-  choiceFocalPoints: ChoiceFocalPoints;
 }
 
 interface VisualLayout {
   desktopPosition: string;
   mobilePosition: string;
-  choiceFocalPoints: ChoiceFocalPoints;
 }
 
 const VISUAL_LAYOUTS: readonly VisualLayout[] = [
-  { desktopPosition: '50% 50%', mobilePosition: '48% 54%', choiceFocalPoints: ['17% 57%', '50% 55%', '83% 56%', '50% 82%'] },
-  { desktopPosition: '52% 47%', mobilePosition: '58% 51%', choiceFocalPoints: ['19% 52%', '52% 58%', '84% 52%', '52% 84%'] },
-  { desktopPosition: '48% 53%', mobilePosition: '43% 58%', choiceFocalPoints: ['16% 61%', '49% 51%', '82% 61%', '49% 86%'] },
-  { desktopPosition: '54% 49%', mobilePosition: '62% 55%', choiceFocalPoints: ['20% 56%', '53% 52%', '86% 57%', '53% 80%'] },
+  { desktopPosition: '50% 50%', mobilePosition: '48% 54%' },
+  { desktopPosition: '52% 47%', mobilePosition: '58% 51%' },
+  { desktopPosition: '48% 53%', mobilePosition: '43% 58%' },
+  { desktopPosition: '54% 49%', mobilePosition: '62% 55%' },
 ];
 
 function layoutFor(index: number): VisualLayout {
@@ -96,8 +93,4 @@ export function getAdultEventSceneVisual(eventId: string, age: number, title: st
     id: `adult-${eventId}`, src: `./art/adult-${eventId}-v1.webp`,
     alt: `${age} 岁「${title}」：这个局面的三种选择`, caption: `成年生活档案 ${age} · 选择会留下新的生活状态`, tone: 'adult',
   }, layoutFor(index));
-}
-
-export function getChoiceFocalPoint(visual: SceneVisual, index: number): string {
-  return visual.choiceFocalPoints[index] ?? visual.desktopPosition;
 }

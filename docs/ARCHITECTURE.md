@@ -116,7 +116,7 @@ stateDiagram-v2
 
 ## UI 边界
 
-`App.tsx` 按 phase 映射十一个阶段页面（含童年总结后的 `identity`）并负责会话编排；`screens/TitleScreen.tsx` 隔离正式/试玩入口，`screens/EncounterResultScreen.tsx` 隔离结案与客观记录导出，`components/AgeRail.tsx` 提供共享阶段标尺，`components/SceneArt.tsx` 统一剧情主图和选择裁切。其余阶段在继续扩展内容前逐步迁入 `screens/`。界面层可保留的临时状态只有：
+`App.tsx` 按 phase 映射十一个阶段页面（含童年总结后的 `identity`）并负责会话编排；`screens/TitleScreen.tsx` 隔离正式/试玩入口，`screens/EncounterResultScreen.tsx` 隔离结案与客观记录导出，`components/AgeRail.tsx` 提供共享阶段标尺，`components/SceneArt.tsx` 把每段剧情的独立画面统一处理为低对比、去色的装饰背景。选项保持纯文字，不再重复裁切同一张缩略图。其余阶段在继续扩展内容前逐步迁入 `screens/`。界面层可保留的临时状态只有：
 
 - 裁判端点；
 - 设置抽屉是否打开；

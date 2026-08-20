@@ -20,7 +20,7 @@ import { clearSave, loadGame, saveGame } from './game/persistence';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
 import { getAdultEventSceneVisual, getChapterSceneVisual, getGrowthSceneVisual } from './game/visuals';
 import { AgeRail } from './components/AgeRail';
-import { ChoiceArt, SceneArt } from './components/SceneArt';
+import { SceneArt } from './components/SceneArt';
 import { EncounterResultScreen } from './screens/EncounterResultScreen';
 import { TitleScreen } from './screens/TitleScreen';
 import type { ReactNode } from 'react';
@@ -182,10 +182,8 @@ function GrowthScreen({ state, dispatch }: { state: GameState; dispatch: React.D
         <p className="story-text">{event.text}</p>
         <p className="story-question">{event.question}</p>
         <div className="choice-list" aria-label="选择你的做法">
-          {event.choices.map((choice, index) => (
+          {event.choices.map((choice) => (
             <button className="choice" key={choice.id} onClick={() => dispatch({ type: 'CHOOSE_GROWTH', choiceId: choice.id })}>
-              <ChoiceArt visual={visual} index={index} label={choice.verb} />
-              <span className="choice__key">{String.fromCharCode(65 + index)}</span>
               <span className="choice__copy"><b>{choice.verb}</b><small>{choice.detail}</small></span>
               <ApproachMark approach={choice.approach} />
             </button>
@@ -406,30 +404,37 @@ function EncounterScreen({ state, dispatch, endpoint }: {
         </div>
       </header>
       <section className="encounter-premise"><span>局面</span><p>{chapter.premise}</p></section>
-      {identity && (
-        <section className="identity-line" aria-label="起手身份">
-          <span>起手身份</span><b>{identity.title}</b><p>{identity.passiveText}</p>
-        </section>
-      )}
-      {state.mode === 'prototype' && (
-        <section className="identity-line" aria-label="永久记忆规则">
-          <span>记忆不会被消耗</span>
-          <p>唤起不会消耗记忆牌；本场结束后，全部记忆会回到你的应对组。童年余温只是把本场已经用过的一张牌提前召回。</p>
-        </section>
-      )}
-      {chapter.rule && (
-        <section className="encounter-rule" aria-label="本局规则">
-          <span>本局规则</span><b>{chapter.rule.title}</b><p>{chapter.rule.description}</p>
-        </section>
-      )}
-      {state.mode === 'story' && (
-        <section className="climate-line">
-          <span>时代气候</span>
-          <b>{encounter.climate.title}</b>
-          <p>{encounter.climate.description}</p>
-          {state.marks.length > 0 && <div className="mark-inline">{state.marks.map((mark) => <LifeMarkTag mark={mark} key={mark.id} />)}</div>}
-        </section>
-      )}
+      <details className="encounter-context">
+        <summary>
+          <span>本轮背景</span>
+          <b>{identity?.title ?? '普通人'}{chapter.rule ? ` · ${chapter.rule.title}` : ''}{state.mode === 'story' ? ` · ${encounter.climate.title}` : ''}</b>
+          <i>展开查看修正</i>
+        </summary>
+        <div className="encounter-context__body">
+          {identity && (
+            <section className="identity-line" aria-label="起手身份">
+              <span>起手身份</span><b>{identity.title}</b><p>{identity.passiveText}</p>
+            </section>
+          )}
+          {state.mode === 'prototype' && (
+            <section className="identity-line" aria-label="永久记忆规则">
+              <span>永久记忆</span><b>牌不会被消耗</b>
+              <p>每场结束后全部记忆回到应对组；童年余温只是在本场提前找回一张已经用过的牌。</p>
+            </section>
+          )}
+          {chapter.rule && (
+            <section className="encounter-rule" aria-label="本局规则">
+              <span>本局规则</span><b>{chapter.rule.title}</b><p>{chapter.rule.description}</p>
+            </section>
+          )}
+          {state.mode === 'story' && (
+            <section className="climate-line">
+              <span>时代气候</span><b>{encounter.climate.title}</b><p>{encounter.climate.description}</p>
+              {state.marks.length > 0 && <div className="mark-inline">{state.marks.map((mark) => <LifeMarkTag mark={mark} key={mark.id} />)}</div>}
+            </section>
+          )}
+        </div>
+      </details>
       {tutorialActive && tutorialStep === 0 && encounter.records.length === 0 && (
         <section className="duel-coach" aria-labelledby="duel-coach-title">
           <span>第一次上桌 · 第一步</span>
@@ -481,7 +486,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
               </button>
             </div>
           )}
-          {(!tutorialActive || tutorialStep === 2) && (
+          {(!tutorialActive || tutorialStep === 2) && (encounter.warmthUsed || memoryCards.length > 0) && (
             <section className="warmth-tool" aria-label="童年余温">
               <div>
                 <b>童年余温</b>
@@ -552,6 +557,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
                 </div>
               );
             })}
+            {handCards.length === 0 && <p className="hand-grid__empty" role="status">这一轮没有可用记忆牌。请换一手，或返回标题重新开始。</p>}
           </div>
           {pendingCard && <p className="judge-wait" role="status">裁判正在落笔…</p>}
         </section>
@@ -581,13 +587,11 @@ function AdultEventScreen({ state, dispatch }: { state: GameState; dispatch: Rea
           </div>
         )}
         <div className="adult-choice-list">
-          {choices.map((choice, index) => {
+          {choices.map((choice) => {
             const available = canChooseAdultChoice(state, choice);
             const blockReason = getAdultChoiceBlockReason(state, choice);
             return (
               <button className="adult-choice" disabled={!available} key={choice.id} onClick={() => dispatch({ type: 'CHOOSE_ADULT_EVENT', choiceId: choice.id })}>
-                <ChoiceArt visual={visual} index={index} label={choice.verb} />
-                <span className="choice__key">{String.fromCharCode(65 + index)}</span>
                 <span className="choice__copy"><b>{choice.verb}</b><small>{choice.detail}</small></span>
                 <span className="adult-choice__effects">
                   {(Object.entries(choice.changes) as Array<[ResourceKey, number]>).map(([key, value]) => (

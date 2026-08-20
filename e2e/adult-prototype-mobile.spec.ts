@@ -18,11 +18,11 @@ test('390像素玩家能用童年余温完成困局并在结案下载记录', as
   await expectMinimumTouchTarget(start);
   await start.click();
   await expect(page.getByRole('heading', { name: '合同上没有写的事' })).toBeVisible();
-  const sceneImage = page.getByRole('img', { name: '成年牌局「合同上没有写的事」的现场' });
+  const sceneImage = page.locator('.encounter-screen .scene-art img');
   await expect(sceneImage).toBeVisible();
   await expectDecodedImage(sceneImage);
   await expect(page.getByText('平台服务中心 · 下午 16:40')).toBeVisible();
-  await expect(page.getByRole('region', { name: '起手身份' })).toContainText('灵活就业者');
+  await expect(page.locator('.encounter-context > summary')).toContainText('灵活就业者');
 
   const viewHand = page.getByRole('button', { name: '去看我的手牌' });
   await expectMinimumTouchTarget(viewHand);

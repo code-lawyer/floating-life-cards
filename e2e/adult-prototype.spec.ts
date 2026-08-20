@@ -9,7 +9,7 @@ test('玩家能以职校技术员完成合同困局、复制客观记录并用�
 
   await page.getByRole('button', { name: '以职校技术员开始原型' }).click();
   await expect(page.getByRole('heading', { name: '合同上没有写的事' })).toBeVisible();
-  await expect(page.getByRole('region', { name: '起手身份' })).toContainText('职校技术员');
+  await expect(page.locator('.encounter-context > summary')).toContainText('职校技术员');
 
   await page.getByRole('button', { name: '去看我的手牌' }).click();
   const hand = page.getByRole('region', { name: '这一次，你拿哪段自己来回答？' });
@@ -45,7 +45,7 @@ test('玩家能以职校技术员完成合同困局、复制客观记录并用�
   expect(downloadedRecord.replace(/\r\n/g, '\n')).toBe(copiedRecord.replace(/\r\n/g, '\n'));
 
   await retry.click();
-  await expect(page.getByRole('region', { name: '起手身份' })).toContainText('职校技术员');
+  await expect(page.locator('.encounter-context > summary')).toContainText('职校技术员');
   await expect(page.getByText('第 1 / 5 轮')).toBeVisible();
   await expect(page.getByText('0 / 12')).toBeVisible();
 });

@@ -10,7 +10,7 @@ test('正式故事在童年后展示系统生成的起手身份再进入世界�
   await expectMinimumTouchTarget(begin);
   await begin.click();
   await page.getByRole('button', { name: '收下这份出身' }).click();
-  await expectDecodedImage(page.getByRole('img', { name: '4 岁「蓝色蜡笔」：这个局面的三种选择' }));
+  await expectDecodedImage(page.locator('.growth-screen .scene-art img'));
 
   for (let year = 0; year < 14; year += 1) {
     const choices = page.getByLabel('选择你的做法');
@@ -32,5 +32,5 @@ test('正式故事在童年后展示系统生成的起手身份再进入世界�
   await expectMinimumTouchTarget(enterAdult);
   await enterAdult.click();
   await expect(page.getByRole('heading', { name: '没有经验的人' })).toBeVisible();
-  await expect(page.getByRole('region', { name: '起手身份' })).toBeVisible();
+  await expect(page.locator('.encounter-context > summary')).toContainText(/名校毕业生|职校技术员|灵活就业者/);
 });

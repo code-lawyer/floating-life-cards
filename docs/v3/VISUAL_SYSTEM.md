@@ -1,37 +1,36 @@
-# 剧情视觉系统：档案里的电影静帧
+# 剧情视觉系统：纸面留下的场景余影
 
 ## 视觉命题
 
-文字仍然负责选择和因果，图片负责让玩家先感到“这件事发生在一个具体地方”。画面不是卡牌稀有度插画，而是人生档案里偶然留下的一帧：旧书桌、站点办公室、候诊走廊、夜班公交、搬家纸箱和平台服务中心。
+文字负责选择和因果，图片只负责让玩家感到“这件事发生在一个具体地方”。画面不是卡牌稀有度插画，也不是需要先观看的海报，而是档案纸下若隐若现的一层场景余影：旧书桌、站点办公室、候诊走廊、夜班公交、搬家纸箱和平台服务中心。
 
 ## 视觉语言
 
 - 主色：档案紫蓝 `#DCE3F7`、墨蓝 `#17213B`、钴蓝 `#285B8F`、克制的暗红 `#AA3F4A`、纸白 `#F7F8FC`；
-- 图像：现实主义构图叠加水粉与孔版印刷颗粒，保留纸纤维和轻微套色偏差；
+- 图像：运行时统一去色、提高线条对比并降低至约 9–13% 不透明度，形成接近暗淡白描的纸面背景；
 - 人物：优先使用手、背影、生活痕迹与空间，避免固定主角脸影响玩家代入；
 - 光线：普通城市真实光源，不用奇幻光、励志广告逆光或奢侈室内；
 - 文字不烧进图片，所有标题与数值由界面渲染。
 
 ## 布局
 
-桌面：
+桌面（内容舞台居中，最大约 1360–1480px）：
 
 ```text
-┌─────────────── 画面 44% ───────────────┬──── 档案/选择 56% ────┐
-│ 事件空间、时代与人物痕迹                 │ 年龄、标题、问题         │
-│ 可被轻遮罩，不承载关键文字               │ 三个选择及真实成本       │
-└────────────────────────────────────────┴──────────────────────┘
+┌────────────────── 淡化场景背景 ──────────────────┐
+│ 年龄 / 标题 / 问题                                 │
+│ 纯文字选择卡（不重复场景缩略图）                    │
+│ 画面只在右侧和空隙中提供空间感，不承载关键文字      │
+└──────────────────────────────────────────────────┘
 ```
 
 手机竖屏：
 
 ```text
-┌──────── 32–40svh 剧情画面 ────────┐
-│ 焦点位由 visual.mobilePosition 声明│
-├───────────────────────────────────┤
+┌──────── 淡化场景背景 ─────────────┐
 │ 标题 / 问题                         │
-│ 选择图 + 选择文案 + 成本             │
-│ 固定底部主要动作，尊重安全区          │
+│ 纯文字选择 + 成本                    │
+│ 44px 以上触控目标，尊重安全区         │
 └───────────────────────────────────┘
 ```
 
@@ -47,15 +46,14 @@ interface SceneVisual {
   desktopPosition: string;
   mobilePosition: string;
   tone: 'childhood' | 'threshold' | 'adult' | 'aftermath';
-  choiceFocalPoints: readonly [string, string, string, string];
 }
 ```
 
-成长事件、成年事件、困局与困局结案由 `visuals.ts` 解析稳定且唯一的视觉ID；常规三选一图片按左、中、右行动区裁切，资源全锁时的第四项使用独立的下方焦点，不会退回模糊的中心默认值。后续内容工具化时再把当前年龄/事件白名单迁成内容侧 `sceneVisualId`，不在当前发布候选里制造第二套注册表。
+成长事件、成年事件、困局与困局结案由 `visuals.ts` 解析稳定且唯一的视觉ID；桌面和移动端各自声明场景焦点。选择项不再裁切或重复展示同一张场景图，资源全锁时的第四项也沿用同一套纯文字选择语言。后续内容工具化时再把当前年龄/事件白名单迁成内容侧 `sceneVisualId`，不制造第二套注册表。
 
 ## 动效
 
-唯一标志性动效是“记忆显影”：新场景第一次出现时，画面从低对比纸纹在 320ms 内显影，随后完全静止。出牌只让所选记忆的局部边框与结果文字建立联系，不做持续漂浮、粒子和卡牌翻转。`prefers-reduced-motion` 下直接显示最终帧。
+界面保持近乎静止。选择悬停只做轻微抬升，出牌以结果文字和资源变化建立联系，不做持续漂浮、粒子和卡牌翻转。`prefers-reduced-motion` 下取消过渡。
 
 ## 首批资产
 
@@ -71,7 +69,7 @@ interface SceneVisual {
 
 - 模式：OpenAI内置 `imagegen`；
 - 日期：2026-08-19；
-- 基础提示词：`Create a 16:9 cinematic editorial illustration for Chinese narrative card game 《浮生牌局》. Grounded documentary realism blended with restrained gouache and subtle risograph grain; indigo, periwinkle, warm paper, muted oxblood; ordinary contemporary Chinese life; no identifiable faces, no readable text/logos/watermark/fantasy/anime. Compose one continuous scene with three readable action zones left-to-right, each safe to crop as mobile choice thumbnail, central narrative object clear, preserve vertical crop room.`；
+- 基础提示词生成的是 16:9 现实主义叙事场景；运行时不会直接以高饱和主图展示，而会按本文件的低对比背景规则统一处理；
 - 每张再追加对应年龄、事件、地点和三种行动细节；
 - 应用图标提示词强调折叠人生卡、长成嫩芽的蓝色路线、暗红印章与小尺寸识别度；
 - 原始生成稿：`C:\Users\lanzh\.codex\generated_images\01a0177d-c587-72f1-9397-8f8ce83a72cf`；

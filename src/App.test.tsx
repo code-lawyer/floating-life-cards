@@ -81,26 +81,27 @@ describe('玩家入口', () => {
     render(<App />);
 
     expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '起手身份' })).toHaveTextContent('名校毕业生');
+    expect(document.querySelector('.encounter-context > summary')).toHaveTextContent('名校毕业生');
   });
 
   it('从标题页进入普通人出生档案', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /浮生/ })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: '童年记忆与成年档案交叠的城市书桌' })).toBeInTheDocument();
+    expect(document.querySelector('.title-key-art')).toHaveAttribute('alt', '');
+    expect(screen.queryByText('直接进入成年牌局')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '登记出生' }));
     expect(screen.getByRole('heading', { name: '你只是一个普通人' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: '清晨门口等待上学的旧书包' })).toBeInTheDocument();
+    expect(document.querySelector('.scene-art img')).toHaveAttribute('alt', '');
     expect(screen.getByRole('button', { name: '收下这份出身' })).toBeEnabled();
   });
 
-  it('成长选择把同一剧情画面裁成三个可辨认的行动视角', () => {
+  it('成长剧情只把画面作为安静背景，选项不再重复缩略图', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: '登记出生' }));
     fireEvent.click(screen.getByRole('button', { name: '收下这份出身' }));
 
-    expect(screen.getByRole('img', { name: '4 岁「蓝色蜡笔」：这个局面的三种选择' })).toBeInTheDocument();
-    expect(screen.getAllByRole('img', { name: /选择插图/ })).toHaveLength(3);
+    expect(document.querySelector('.scene-art img')).toHaveAttribute('src', './art/growth-04-v1.webp');
+    expect(document.querySelectorAll('.choice__art')).toHaveLength(0);
   });
 
   it('标题页可打开包含核心术语的完整玩法说明', () => {
@@ -112,20 +113,11 @@ describe('玩家入口', () => {
     expect(screen.getByRole('heading', { name: '克制与“同型”' })).toBeInTheDocument();
   });
 
-  it('标题页可选择身份直接试玩公开规则的成年困局原型', () => {
+  it('正式标题页不暴露成年困局原型入口', () => {
     render(<App />);
-    expect(screen.getByRole('button', { name: '以名校毕业生开始原型' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: '以职校技术员开始原型' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: '以灵活就业者开始原型' })).toBeEnabled();
-
-    fireEvent.click(screen.getByRole('button', { name: '以职校技术员开始原型' }));
-    expect(screen.getByRole('heading', { name: '合同上没有写的事' })).toBeInTheDocument();
-    expect(screen.getByText('职校技术员')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: '成年牌局「合同上没有写的事」的现场' })).toBeInTheDocument();
-    expect(screen.getByText('签字倒计时')).toBeInTheDocument();
-    expect(screen.getByText(/从第二轮起，每过一轮/)).toBeInTheDocument();
-    expect(screen.queryByText('时代气候')).not.toBeInTheDocument();
-    expect(screen.getByText(/唤起不会消耗记忆牌；本场结束后，全部记忆会回到你的应对组/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '以名校毕业生开始原型' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '以职校技术员开始原型' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '以灵活就业者开始原型' })).not.toBeInTheDocument();
   });
 
   it('设置先展示玩家叙事状态，再按需展开开发者接入', () => {
@@ -158,7 +150,7 @@ describe('玩家入口', () => {
   it('成年组牌先给出八张随身牌摘要，并把完整规则收起', () => {
     saveGame(makeDeckState());
     render(<App />);
-    expect(screen.getByRole('img', { name: '从十四年童年档案中挑出八段随身记忆' })).toBeInTheDocument();
+    expect(document.querySelector('.scene-art--deck img')).toHaveAttribute('src', './art/deck-key-art-v1.webp');
     expect(screen.getByRole('heading', { name: '带进成年的人生片段' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /^移出/ })).toHaveLength(8);
     expect(screen.getByRole('button', { name: /已选/ })).toHaveAttribute('aria-pressed', 'true');
@@ -174,7 +166,7 @@ describe('玩家入口', () => {
     expect(screen.getByRole('heading', { name: /你以「(名校毕业生|职校技术员|灵活就业者)」进入成年/ })).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: '起手身份形成原因' })).getAllByRole('listitem')).toHaveLength(3);
     fireEvent.click(screen.getByRole('button', { name: '以这个起点进入成年牌局' }));
-    expect(screen.getByRole('region', { name: '起手身份' })).toBeInTheDocument();
+    expect(document.querySelector('.encounter-context > summary')).toHaveTextContent(/名校毕业生|职校技术员|灵活就业者/);
     expect(screen.getByRole('heading', { name: '没有经验的人' })).toBeInTheDocument();
   });
 
@@ -275,7 +267,7 @@ describe('玩家入口', () => {
     saveResolvedPrototype('elite-graduate');
     render(<App />);
 
-    expect(screen.getByRole('img', { name: '成年牌局「合同上没有写的事」的结案现场' })).toBeInTheDocument();
+    expect(document.querySelector('.scene-art--result img')).toHaveAttribute('src', './art/contract-key-art-v1.webp');
   });
 
   it('原型结案返回身份入口时只清除原型进度并保留正式故事', () => {

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS } from './content';
-import { getAdultEventSceneVisual, getChapterSceneVisual, getChoiceFocalPoint, getGrowthSceneVisual, getSceneVisual } from './visuals';
+import { getAdultEventSceneVisual, getChapterSceneVisual, getGrowthSceneVisual, getSceneVisual } from './visuals';
 
 function expectFilesToExist(sources: string[]) {
   for (const source of sources) {
@@ -32,7 +32,7 @@ describe('剧情视觉注册表', () => {
     expectFilesToExist([...chapterVisuals.map((visual) => visual.src), getChapterSceneVisual('contract-terms', '合同上没有写的事').src]);
   });
 
-  it('每个成年生活事件都有独立图片和三选择裁切源', () => {
+  it('每个成年生活事件都有独立背景图', () => {
     const visuals = ADULT_EVENTS.map((event) => getAdultEventSceneVisual(event.id, event.age, event.title));
 
     expect(new Set(visuals.map((visual) => visual.id)).size).toBe(ADULT_EVENTS.length);
@@ -44,7 +44,7 @@ describe('剧情视觉注册表', () => {
     expectFilesToExist(['origin', 'deck', 'ending'].map((id) => getSceneVisual(id as 'origin' | 'deck' | 'ending').src));
   });
 
-  it('每张剧情视觉都声明桌面裁切、移动焦点、色调和四个选择焦点', () => {
+  it('每张剧情视觉都声明桌面裁切、移动焦点和色调', () => {
     const visuals = [
       ...GROWTH_EVENTS.map((event) => getGrowthSceneVisual(event.age, event.title)),
       ...CHAPTERS.map((chapter) => getChapterSceneVisual(chapter.id, chapter.title)),
@@ -55,8 +55,6 @@ describe('剧情视觉注册表', () => {
       expect(visual.desktopPosition).toMatch(/^\d+% \d+%$/);
       expect(visual.mobilePosition).toMatch(/^\d+% \d+%$/);
       expect(visual.tone).toMatch(/^(childhood|threshold|adult|aftermath)$/);
-      expect(visual.choiceFocalPoints).toHaveLength(4);
-      expect(getChoiceFocalPoint(visual, 3)).toMatch(/^\d+% \d+%$/);
     }
   });
 });

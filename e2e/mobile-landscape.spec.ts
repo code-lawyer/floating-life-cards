@@ -9,6 +9,6 @@ test('窄屏横屏保持触摸输入、可读画面和44像素主要操作', asy
   const start = page.getByRole('button', { name: '以职校技术员开始原型' });
   await expectMinimumTouchTarget(start);
   await start.click();
-  await expectDecodedImage(page.getByRole('img', { name: '成年牌局「合同上没有写的事」的现场' }));
+  await expectDecodedImage(page.locator('.encounter-screen .scene-art img'));
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 844);
 });
