@@ -20,6 +20,7 @@
 - 1000个确定性完整人生：三身份可达、章节有胜有负、资源0–9、无状态锁死；
 - `npm run desktop:make`：Windows x64目录与Squirrel安装器成功生成；
 - `npm run test:desktop`：Playwright真实启动打包后的EXE并进入正式故事，1项通过；
+- [GitHub Quality gate #32342575029](https://github.com/code-lawyer/floating-life-cards/actions/runs/32342575029)：`v1.5.0-rc.3` 对应提交的依赖安装、Chromium安装、测试、构建和5条浏览器旅程全部通过；
 - Authenticode检查：`NotSigned`，与当前内部候选声明一致。
 
 ## 公开发布阻断
