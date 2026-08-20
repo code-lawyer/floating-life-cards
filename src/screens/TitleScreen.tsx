@@ -31,8 +31,13 @@ export function TitleScreen({ onStart, onGuide, onPrototype, playtestOnly }: {
 
   return (
     <main className="title-screen">
+      <img
+        className="title-key-art"
+        src="./art/title-key-art-v1.webp"
+        alt="童年记忆与成年档案交叠的城市书桌"
+      />
       <div className="title-screen__register" aria-hidden="true">出生登记 / 未定级 / 普通人</div>
-      <p className="eyebrow">一款纯文字成长牌局</p>
+      <p className="eyebrow">一款人生故事与选择牌局</p>
       <h1>浮生<br />牌局</h1>
       <p className="title-screen__thesis">从四岁开始，<br />为十八岁后的自己攒一手牌。</p>
       <div className="title-screen__rule">

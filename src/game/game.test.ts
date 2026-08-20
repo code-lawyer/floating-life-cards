@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { approachRelation, canChooseAdultChoice, createGame, getAdultEvent, getChapter, getGrowthEvent, getWorldPower, previewCardPlay, reduceGame } from './game';
+import { approachRelation, canChooseAdultChoice, createGame, getAdultChoiceBlockReason, getAdultChoices, getAdultEvent, getChapter, getGrowthEvent, getRedrawPressureCost, getWorldPower, previewCardPlay, reduceGame } from './game';
+import { ADULT_EVENTS } from './content';
 import type { GameState } from './types';
 
 function acceptOrigin(seed = 12345): GameState {
@@ -181,6 +182,7 @@ describe('浮生牌局规则模块', () => {
     let state = reduceGame(growUp(84), { type: 'BEGIN_ADVENTURE' });
     const originalHand = state.encounter!.hand;
     const pressure = state.resources.pressure;
+    const redrawCost = getRedrawPressureCost(state);
     state = reduceGame(state, { type: 'REDRAW_HAND' });
     expect(state.encounter?.redrawUsed).toBe(true);
     expect(state.encounter?.hand).toHaveLength(4);
@@ -191,7 +193,7 @@ describe('浮生牌局规则模块', () => {
       ...state.encounter!.drawPile,
       ...state.encounter!.memoryPile,
     ])).toEqual(new Set(state.selectedDeck));
-    expect(state.resources.pressure).toBe(Math.min(9, pressure + 1));
+    expect(state.resources.pressure).toBe(Math.min(9, pressure + redrawCost));
     expect(reduceGame(state, { type: 'REDRAW_HAND' })).toBe(state);
   });
 
@@ -255,6 +257,19 @@ describe('浮生牌局规则模块', () => {
     expect(state.adultEventsResolved).toHaveLength(1);
   });
 
+  it('童年组牌确认后生成起手身份并经过独立时间跳切', () => {
+    const deck = growUp(9010);
+    const identity = reduceGame(deck, { type: 'CONFIRM_DECK' });
+
+    expect(identity.phase).toBe('identity');
+    expect(identity.startingIdentity).toMatch(/elite-graduate|technical-worker|gig-worker/);
+    expect(identity.journal.at(-1)?.title).toMatch(/^起手身份：/);
+
+    const encounter = reduceGame(identity, { type: 'BEGIN_ADVENTURE' });
+    expect(encounter.phase).toBe('encounter');
+    expect(encounter.startingIdentity).toBe(identity.startingIdentity);
+  });
+
   it('成年事件会执行资源门槛并拒绝条件不足的选择', () => {
     let state = reduceGame(growUp(71), { type: 'BEGIN_ADVENTURE' });
     state = {
@@ -267,6 +282,79 @@ describe('浮生牌局规则模块', () => {
     const costly = event.choices.find((choice) => choice.requirement)!;
     expect(canChooseAdultChoice(state, costly)).toBe(false);
     expect(reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: costly.id })).toBe(state);
+  });
+
+  it('成年选择会把所有负向资源变化视为真实成本', () => {
+    const state: GameState = {
+      ...reduceGame(growUp(71), { type: 'BEGIN_ADVENTURE' }),
+      phase: 'adult-event',
+      activeAdultEventId: 'first-salary',
+      resources: { heart: 7, money: 0, bonds: 5, pressure: 1 },
+    };
+    const spendMoney = getAdultEvent(state)!.choices.find((choice) => choice.id === 'home')!;
+
+    expect(canChooseAdultChoice(state, spendMoney)).toBe(false);
+    expect(getAdultChoiceBlockReason(state, spendMoney)).toBe('余钱不足：需要 2 点，当前 0 点');
+    expect(reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: spendMoney.id })).toBe(state);
+  });
+
+  it('全部成年事件都不能把心气、余钱或人情扣到零以下', () => {
+    const base = reduceGame(growUp(72), { type: 'BEGIN_ADVENTURE' });
+    const spendable = ['heart', 'money', 'bonds'] as const;
+
+    for (const event of ADULT_EVENTS) {
+      for (const choice of event.choices) {
+        for (const resource of spendable) {
+          const delta = choice.changes[resource] ?? 0;
+          if (delta >= 0) continue;
+          const cost = Math.abs(delta);
+          const state: GameState = {
+            ...base,
+            phase: 'adult-event',
+            activeAdultEventId: event.id,
+            resources: { heart: 9, money: 9, bonds: 9, pressure: 1, [resource]: cost - 1 },
+          };
+
+          expect(canChooseAdultChoice(state, choice), `${event.id}/${choice.id}/${resource}`).toBe(false);
+          expect(reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: choice.id })).toBe(state);
+        }
+      }
+    }
+  });
+
+  it('资源耗尽时每个成年事件仍有一个会推进故事的现实兜底', () => {
+    const base = reduceGame(growUp(73), { type: 'BEGIN_ADVENTURE' });
+
+    for (const event of ADULT_EVENTS) {
+      const state: GameState = {
+        ...base,
+        phase: 'adult-event',
+        activeAdultEventId: event.id,
+        resources: { heart: 0, money: 0, bonds: 0, pressure: 9 },
+      };
+      const choices = getAdultChoices(state);
+      const available = choices.filter((choice) => canChooseAdultChoice(state, choice));
+
+      expect(available.length, event.id).toBeGreaterThan(0);
+      const result = reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: available[0]!.id });
+      expect(result.phase, event.id).toBe('adult-result');
+      if (available[0]!.id === 'constraint-fallback') {
+        expect(result.adultEventResult?.outcome).toContain(event.title);
+      }
+    }
+  });
+
+  it('离线出牌叙事会引用被唤起的具体记忆', () => {
+    const state = reduceGame(growUp(851), { type: 'BEGIN_ADVENTURE' });
+    const firstCard = state.cards.find((card) => card.id === state.encounter!.hand[0])!;
+    const secondCard = state.cards.find((card) => card.id === state.encounter!.hand[1])!;
+
+    const firstResult = reduceGame(state, { type: 'PLAY_CARD', cardId: firstCard.id });
+    const secondResult = reduceGame(state, { type: 'PLAY_CARD', cardId: secondCard.id });
+
+    expect(firstResult.encounter!.records[0]!.text).toContain(firstCard.memory);
+    expect(secondResult.encounter!.records[0]!.text).toContain(secondCard.memory);
+    expect(firstResult.encounter!.records[0]!.text).not.toBe(secondResult.encounter!.records[0]!.text);
   });
 
   it('可以从出生完整推进到一种成年结局', () => {

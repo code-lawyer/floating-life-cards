@@ -12,3 +12,7 @@ verification-*.png
 playwright-report/
 test-results/
 blob-report/
+desktop-release/
+desktop-stage/
+windows-installer/
+out/

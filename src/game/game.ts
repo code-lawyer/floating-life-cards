@@ -1,5 +1,5 @@
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
-import { getIdentityCardBonus, identityMakesFirstRedrawFree } from './identities';
+import { deriveStartingIdentity, getIdentityCardBonus, getStartingIdentity, identityMakesFirstRedrawFree } from './identities';
 import { getPrototypeChapter, PROTOTYPE_CARDS, PROTOTYPE_CLIMATE, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
 import { shuffle, takeOne } from './rng';
 import type {
@@ -25,7 +25,7 @@ const HAND_SIZE = 4;
 
 export function createGame(seed = Date.now() >>> 0): GameState {
   return {
-    version: 4,
+    version: 5,
     mode: 'story',
     seed,
     rng: seed || 0x6d2b79f5,
@@ -71,10 +71,41 @@ export function getAdultEvent(state: GameState): AdultEvent | null {
   return state.activeAdultEventId ? ADULT_EVENTS.find((event) => event.id === state.activeAdultEventId) ?? null : null;
 }
 
+function makeConstraintFallback(event: AdultEvent): AdultEventChoice {
+  return {
+    id: 'constraint-fallback',
+    verb: '先让现实替你决定',
+    detail: '眼下没有足够的心气、余钱或人情承担原来的选项；事情仍会向前。',
+    changes: { pressure: 2 },
+    outcomes: [`你暂时没有能力主动处理「${event.title}」。局面替你作了一个并不舒服的决定，你记下这份限制，也继续往下生活。`],
+  };
+}
+
+export function getAdultChoiceBlockReason(state: GameState, choice: AdultEventChoice): string | null {
+  if (state.phase !== 'adult-event') return '当前不在成年选择阶段';
+  if (choice.requirement && state.resources[choice.requirement.resource] < choice.requirement.min) {
+    return choice.requirement.text;
+  }
+  const labels: Record<Exclude<keyof Resources, 'pressure'>, string> = { heart: '心气', money: '余钱', bonds: '人情' };
+  for (const [resource, amount] of Object.entries(choice.changes) as Array<[keyof Resources, number]>) {
+    if (resource === 'pressure' || amount >= 0) continue;
+    const required = Math.abs(amount);
+    if (state.resources[resource] < required) {
+      return `${labels[resource]}不足：需要 ${required} 点，当前 ${state.resources[resource]} 点`;
+    }
+  }
+  return null;
+}
+
 export function canChooseAdultChoice(state: GameState, choice: AdultEventChoice): boolean {
-  if (state.phase !== 'adult-event') return false;
-  if (!choice.requirement) return true;
-  return state.resources[choice.requirement.resource] >= choice.requirement.min;
+  return getAdultChoiceBlockReason(state, choice) === null;
+}
+
+export function getAdultChoices(state: GameState): AdultEventChoice[] {
+  const event = getAdultEvent(state);
+  if (!event) return [];
+  if (event.choices.some((choice) => canChooseAdultChoice(state, choice))) return event.choices;
+  return [...event.choices, makeConstraintFallback(event)];
 }
 
 export function getWorldPower(state: GameState): number | null {
@@ -88,7 +119,23 @@ export function getWorldPower(state: GameState): number | null {
 }
 
 export function canBeginAdventure(state: GameState): boolean {
-  return state.phase === 'deck' && state.selectedDeck.length === 8;
+  return (state.phase === 'deck' || state.phase === 'identity') && state.selectedDeck.length === 8;
+}
+
+function assignStartingIdentity(state: GameState): GameState {
+  if (state.startingIdentity) return state;
+  const profile = deriveStartingIdentity(state.cards, state.traits, state.resources);
+  const identity = getStartingIdentity(profile.id)!;
+  return {
+    ...state,
+    startingIdentity: profile.id,
+    journal: [...state.journal, {
+      stamp: '18 岁 · 时间跳切',
+      title: `起手身份：${identity.title}`,
+      body: profile.reasons.join('；'),
+      tone: 'plain',
+    }],
+  };
 }
 
 export function approachRelation(card: Approach, intent: Approach): 'advantage' | 'disadvantage' | 'even' {
@@ -316,9 +363,15 @@ export function previewCardPlay(state: GameState, card: LifeCard): CombatPreview
 
 function resolveText(card: LifeCard, intent: Intent, score: number, world: number, custom?: string): string {
   if (custom?.trim()) return custom.trim();
-  if (score > world) return `你用「${card.title}」接住了${intent.title}。旧记忆没有替你回答，却让你知道下一句从哪里开始。`;
-  if (score === world) return `「${card.title}」与${intent.title}僵持不下。世界没有让路，你也没有后退。`;
-  return `「${card.title}」没能完全挡住${intent.title}。这张牌不是答案，但它替你保住了继续出牌的位置。`;
+  const remembered = `你唤起「${card.title}」：${card.memory}`;
+  const response = card.approach === '洞察'
+    ? '你沿着当年看见的线索，把含糊的问题拆成了可以回答的部分。'
+    : card.approach === '行动'
+      ? '当年迈出的那一步重新给了你动作的节奏。'
+      : '你没有把理解误当退让，而是先辨认彼此真正害怕失去什么。';
+  if (score > world) return `${remembered}${response}这一次，${intent.title}没能继续替你决定。`;
+  if (score === world) return `${remembered}${response}${intent.title}仍没有让路，但你的回答也留在了桌上。`;
+  return `${remembered}${response}它还不足以越过${intent.title}，却让这次受挫不再只是沉默。`;
 }
 
 function endingFor(state: GameState): Ending {
@@ -400,6 +453,10 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
     }
     case 'AUTO_DECK':
       return state.phase === 'deck' ? { ...state, selectedDeck: autoSelect(state.cards) } : state;
+    case 'CONFIRM_DECK':
+      return state.phase === 'deck' && state.selectedDeck.length === 8
+        ? { ...assignStartingIdentity(state), phase: 'identity' }
+        : state;
     case 'START_PROTOTYPE': {
       if (state.phase !== 'title') return state;
       return startPrototype(action.identityId);
@@ -410,10 +467,11 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
         : state;
     case 'BEGIN_ADVENTURE': {
       if (!canBeginAdventure(state)) return state;
+      const identifiedState = assignStartingIdentity(state);
       let adultSchedule: GameState['adultSchedule'];
       let rng: number;
-      [adultSchedule, rng] = buildAdultSchedule(state);
-      return startEncounter({ ...state, rng, adultSchedule }, 0);
+      [adultSchedule, rng] = buildAdultSchedule(identifiedState);
+      return startEncounter({ ...identifiedState, rng, adultSchedule }, 0);
     }
     case 'PLAY_CARD': {
       if (state.phase !== 'encounter' || !state.encounter || state.encounter.resolved) return state;
@@ -513,7 +571,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
     }
     case 'CHOOSE_ADULT_EVENT': {
       const event = getAdultEvent(state);
-      const choice = event?.choices.find((item) => item.id === action.choiceId);
+      const choice = getAdultChoices(state).find((item) => item.id === action.choiceId);
       if (!event || !choice || !canChooseAdultChoice(state, choice)) return state;
       let resources = state.resources;
       for (const [key, amount] of Object.entries(choice.changes) as Array<[keyof Resources, number]>) {

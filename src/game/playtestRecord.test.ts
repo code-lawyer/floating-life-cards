@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import packageInfo from '../../package.json';
 import { createGame, reduceGame } from './game';
 import { formatPrototypePlaytestRecord } from './playtestRecord';
 
@@ -56,7 +57,7 @@ describe('成人原型试玩客观记录', () => {
 
 > 由本机结案状态生成，不联网，不包含试玩者姓名、联系方式或访谈回答。
 
-- 构建版本：1.4.2
+- 构建版本：${packageInfo.version}
 - 匿名记录编号（主持人填写）：
 - 试玩身份：灵活就业者
 - 身份被动：每场第一次换手不增加压力。

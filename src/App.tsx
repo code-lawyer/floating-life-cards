@@ -5,6 +5,8 @@ import {
   canBeginAdventure,
   createGame,
   getAdultEvent,
+  getAdultChoices,
+  getAdultChoiceBlockReason,
   getChapter,
   getGrowthEvent,
   getRedrawPressureCost,
@@ -13,10 +15,12 @@ import {
   reduceGame,
 } from './game/game';
 import { requestJudgeNarration } from './game/judge';
-import { getStartingIdentity } from './game/identities';
+import { deriveStartingIdentity, getStartingIdentity } from './game/identities';
 import { clearSave, loadGame, saveGame } from './game/persistence';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
+import { getAdultEventSceneVisual, getChapterSceneVisual, getGrowthSceneVisual } from './game/visuals';
 import { AgeRail } from './components/AgeRail';
+import { ChoiceArt, SceneArt } from './components/SceneArt';
 import { EncounterResultScreen } from './screens/EncounterResultScreen';
 import { TitleScreen } from './screens/TitleScreen';
 import type { ReactNode } from 'react';
@@ -48,6 +52,24 @@ function isAdultPrototypePlaytest(): boolean {
 function initialState(): GameState {
   const playtest = isAdultPrototypePlaytest();
   return loadGame(playtest ? 'prototype' : 'story') ?? createGame();
+}
+
+const JUDGE_ENDPOINT_KEY = 'floating-life-cards.judge-endpoint';
+
+function loadJudgeEndpoint(): string {
+  try {
+    return localStorage.getItem(JUDGE_ENDPOINT_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function persistJudgeEndpoint(value: string): void {
+  try {
+    localStorage.setItem(JUDGE_ENDPOINT_KEY, value);
+  } catch {
+    // 自定义裁判是可选增强；存储受限时仍保留当前会话内的设置。
+  }
 }
 
 function ResourceStrip({ state }: { state: GameState }) {
@@ -124,6 +146,7 @@ function OriginScreen({ state, dispatch }: { state: GameState; dispatch: React.D
     <main className="screen dossier-screen">
       <AgeRail age="00" label="出身" />
       <section className="screen__body">
+        <SceneArt id="origin" />
         <p className="eyebrow">市民出生登记副本 · {origin.serial}</p>
         <h1 className="display-title">你只是一个普通人</h1>
         <p className="lead">{origin.sentence}</p>
@@ -147,10 +170,12 @@ function OriginScreen({ state, dispatch }: { state: GameState; dispatch: React.D
 
 function GrowthScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
   const event = getGrowthEvent(state)!;
+  const visual = getGrowthSceneVisual(event.age, event.title);
   return (
     <main className="screen growth-screen">
       <AgeRail age={event.age} label={event.stage} />
       <section className="screen__body">
+        <SceneArt visual={visual} />
         <div className="chapter-line"><span>成长档案</span><span>第 {event.age - 3} / 14 年</span></div>
         <p className="eyebrow">{event.stage} · {event.age} 岁</p>
         <h1 className="display-title">{event.title}</h1>
@@ -159,6 +184,7 @@ function GrowthScreen({ state, dispatch }: { state: GameState; dispatch: React.D
         <div className="choice-list" aria-label="选择你的做法">
           {event.choices.map((choice, index) => (
             <button className="choice" key={choice.id} onClick={() => dispatch({ type: 'CHOOSE_GROWTH', choiceId: choice.id })}>
+              <ChoiceArt visual={visual} index={index} label={choice.verb} />
               <span className="choice__key">{String.fromCharCode(65 + index)}</span>
               <span className="choice__copy"><b>{choice.verb}</b><small>{choice.detail}</small></span>
               <ApproachMark approach={choice.approach} />
@@ -173,12 +199,15 @@ function GrowthScreen({ state, dispatch }: { state: GameState; dispatch: React.D
 
 function GrowthResultScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
   const result = state.growthResult!;
+  const event = getGrowthEvent(state)!;
+  const visual = getGrowthSceneVisual(event.age, event.title);
   const resourceDelta = result.cost.resource === 'pressure' ? result.cost.amount : -result.cost.amount;
   const isGain = resourceDeltaTone(result.cost.resource, resourceDelta) === 'positive';
   return (
     <main className="screen result-screen">
       <AgeRail age={result.age} label="已归档" />
       <section className="screen__body result-layout">
+        <SceneArt visual={visual} className="scene-art--result" />
         <div>
           <p className="eyebrow">选择已发生 · 无法撤回</p>
           <h1 className="display-title">你选择了：{result.choice}</h1>
@@ -215,6 +244,7 @@ function DeckScreen({ state, dispatch }: { state: GameState; dispatch: React.Dis
 
   return (
     <main className="wide-screen deck-screen">
+      <SceneArt id="deck" className="scene-art--deck" />
       <header className="deck-intro">
         <AgeRail age={18} label="成年" />
         <div>
@@ -243,7 +273,7 @@ function DeckScreen({ state, dispatch }: { state: GameState; dispatch: React.Dis
       <footer className="sticky-action">
         <button className="text-button" onClick={useRecommendedDeck}>恢复均衡建议</button>
         <p>{state.selectedDeck.length === 8 ? '八张已齐。成年后仍可在每场牌局里换一次手。' : `还需选择 ${8 - state.selectedDeck.length} 张；先从上方随身牌中移出，再补入新牌。`}</p>
-        <button className="primary-button" disabled={!canBeginAdventure(state)} onClick={() => dispatch({ type: 'BEGIN_ADVENTURE' })}>十八岁，出门</button>
+        <button className="primary-button" disabled={!canBeginAdventure(state)} onClick={() => dispatch({ type: 'CONFIRM_DECK' })}>十八岁，确认行囊</button>
       </footer>
       <nav className="deck-filters" aria-label="按做法查看记忆牌">
         {(['已选', ...approaches] as const).map((approach) => (
@@ -291,6 +321,28 @@ function DeckScreen({ state, dispatch }: { state: GameState; dispatch: React.Dis
   );
 }
 
+function IdentityScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
+  const identity = getStartingIdentity(state.startingIdentity)!;
+  const profile = deriveStartingIdentity(state.cards, state.traits, state.resources);
+  return (
+    <main className="screen identity-screen">
+      <AgeRail age={18} label="起手身份" />
+      <section className="screen__body">
+        <SceneArt id="deck" />
+        <p className="eyebrow">童年总结之后 · 时间跳切</p>
+        <h1 className="display-title">你以「{identity.title}」进入成年</h1>
+        <p className="lead">{identity.description}</p>
+        <section className="identity-profile" aria-label="起手身份形成原因">
+          <header><span>系统生成，不是人生等级</span><b>{identity.passiveText}</b></header>
+          <ol>{profile.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ol>
+          <p>身份只决定成年开局的一项规则和部分处境称呼。童年记忆仍是你真正反复使用的牌。</p>
+        </section>
+        <button className="primary-button" onClick={() => dispatch({ type: 'BEGIN_ADVENTURE' })}>以这个起点进入成年牌局</button>
+      </section>
+    </main>
+  );
+}
+
 function EncounterScreen({ state, dispatch, endpoint }: {
   state: GameState;
   dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]>;
@@ -299,6 +351,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
   const chapter = getChapter(state)!;
   const encounter = state.encounter!;
   const identity = getStartingIdentity(state.startingIdentity);
+  const chapterVisual = getChapterSceneVisual(chapter.id, chapter.title);
   const [pendingCard, setPendingCard] = useState<string | null>(null);
   const [tutorialStep, setTutorialStep] = useState<0 | 1 | 2>(() => encounter.records.length === 1 ? 2 : 0);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
@@ -339,6 +392,7 @@ function EncounterScreen({ state, dispatch, endpoint }: {
 
   return (
     <main className={`encounter-screen ${tutorialActive ? `encounter-screen--tutorial-${tutorialStep}` : ''}`}>
+      <SceneArt visual={chapterVisual} className="scene-art--encounter" />
       <header className="encounter-header">
         <div>
           <p className="eyebrow">世界牌局 {encounter.chapterIndex + 1} / {CHAPTERS.length} · {chapter.year} 岁</p>
@@ -508,10 +562,13 @@ function EncounterScreen({ state, dispatch, endpoint }: {
 
 function AdultEventScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
   const event = getAdultEvent(state)!;
+  const choices = getAdultChoices(state);
+  const visual = getAdultEventSceneVisual(event.id, event.age, event.title);
   return (
     <main className="screen adult-event-screen">
       <AgeRail age={event.age} label={event.category} />
       <section className="screen__body">
+        <SceneArt visual={visual} />
         <div className="chapter-line"><span>成年生活事件</span><span>{state.adultEventsResolved.length + 1} / {state.adultSchedule.length}</span></div>
         <p className="eyebrow">{event.category} · {event.age} 岁</p>
         <h1 className="display-title">{event.title}</h1>
@@ -524,10 +581,12 @@ function AdultEventScreen({ state, dispatch }: { state: GameState; dispatch: Rea
           </div>
         )}
         <div className="adult-choice-list">
-          {event.choices.map((choice, index) => {
+          {choices.map((choice, index) => {
             const available = canChooseAdultChoice(state, choice);
+            const blockReason = getAdultChoiceBlockReason(state, choice);
             return (
               <button className="adult-choice" disabled={!available} key={choice.id} onClick={() => dispatch({ type: 'CHOOSE_ADULT_EVENT', choiceId: choice.id })}>
+                <ChoiceArt visual={visual} index={index} label={choice.verb} />
                 <span className="choice__key">{String.fromCharCode(65 + index)}</span>
                 <span className="choice__copy"><b>{choice.verb}</b><small>{choice.detail}</small></span>
                 <span className="adult-choice__effects">
@@ -536,7 +595,7 @@ function AdultEventScreen({ state, dispatch }: { state: GameState; dispatch: Rea
                   ))}
                   {choice.mark && <i className="status-effect">获得「{choice.mark.title}」</i>}
                   {choice.upgradeCard && <i className="status-effect">淬炼一张随机随身牌</i>}
-                  {!available && choice.requirement && <i className="requirement">{choice.requirement.text}</i>}
+                  {!available && blockReason && <i className="requirement">{blockReason}</i>}
                 </span>
               </button>
             );
@@ -549,12 +608,14 @@ function AdultEventScreen({ state, dispatch }: { state: GameState; dispatch: Rea
 
 function AdultResultScreen({ state, dispatch }: { state: GameState; dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]> }) {
   const event = getAdultEvent(state)!;
+  const visual = getAdultEventSceneVisual(event.id, event.age, event.title);
   const result = state.adultEventResult!;
   const upgradedCard = result.upgradedCardId ? state.cards.find((card) => card.id === result.upgradedCardId) : null;
   return (
     <main className="screen adult-result-screen">
       <AgeRail age={event.age} label="生活继续" />
       <section className="screen__body adult-result-layout">
+        <SceneArt visual={visual} className="scene-art--result" />
         <div>
           <p className="eyebrow">选择已写入成年档案</p>
           <h1 className="display-title">你选择了：{result.choice}</h1>
@@ -587,6 +648,7 @@ function EndingScreen({ state, dispatch }: { state: GameState; dispatch: React.D
   const wins = state.chapterResults.filter(Boolean).length;
   return (
     <main className="ending-screen">
+      <SceneArt id="ending" className="scene-art--ending" />
       <p className="eyebrow">人生档案 · 暂时结卷</p>
       <div className="ending-mark" aria-hidden="true">完</div>
       <h1>{ending.title}</h1>
@@ -824,7 +886,7 @@ function AppHeader({ state, onReset, onGuide, endpoint, setEndpoint }: {
 
 export function App() {
   const [state, dispatch] = useReducer(reduceGame, undefined, initialState);
-  const [endpoint, setEndpointState] = useState(() => localStorage.getItem('floating-life-cards.judge-endpoint') ?? '');
+  const [endpoint, setEndpointState] = useState(loadJudgeEndpoint);
   const [guideOpen, setGuideOpen] = useState(false);
   const showChrome = state.phase !== 'title';
   const adultPrototypePlaytest = isAdultPrototypePlaytest();
@@ -844,7 +906,7 @@ export function App() {
 
   function setEndpoint(value: string) {
     setEndpointState(value);
-    localStorage.setItem('floating-life-cards.judge-endpoint', value);
+    persistJudgeEndpoint(value);
   }
 
   function reset() {
@@ -868,6 +930,7 @@ export function App() {
         {state.phase === 'growth' && <GrowthScreen state={state} dispatch={dispatch} />}
         {state.phase === 'growth-result' && <GrowthResultScreen state={state} dispatch={dispatch} />}
         {state.phase === 'deck' && <DeckScreen state={state} dispatch={dispatch} />}
+        {state.phase === 'identity' && <IdentityScreen state={state} dispatch={dispatch} />}
         {state.phase === 'encounter' && <EncounterScreen state={state} dispatch={dispatch} endpoint={endpoint} />}
         {state.phase === 'encounter-result' && <EncounterResultScreen state={state} dispatch={dispatch} onExitPrototype={exitPrototype} />}
         {state.phase === 'adult-event' && <AdultEventScreen state={state} dispatch={dispatch} />}

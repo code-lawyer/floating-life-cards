@@ -1,10 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
+import { expectDecodedImage, expectMinimumTouchTarget, expectTouchEnvironment } from './mobile-assertions';
 
-test.use({ viewport: { width: 390, height: 844 } });
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
 test('390像素玩家能用童年余温完成困局并在结案下载记录', async ({ page }) => {
   await page.goto('/?playtest=adult-prototype');
+  await expectTouchEnvironment(page);
   await expect(page.getByRole('heading', { name: '成年困局规则试玩' })).toBeVisible();
   await expect(page.getByRole('button', { name: '登记出生' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '以名校毕业生开始原型' })).toBeVisible();
@@ -12,12 +14,19 @@ test('390像素玩家能用童年余温完成困局并在结案下载记录', as
   await expect(page.getByRole('button', { name: '以灵活就业者开始原型' })).toBeVisible();
   await expect(page.locator('html')).toHaveJSProperty('scrollWidth', 390);
 
-  await page.getByRole('button', { name: '以灵活就业者开始原型' }).click();
+  const start = page.getByRole('button', { name: '以灵活就业者开始原型' });
+  await expectMinimumTouchTarget(start);
+  await start.click();
   await expect(page.getByRole('heading', { name: '合同上没有写的事' })).toBeVisible();
+  const sceneImage = page.getByRole('img', { name: '成年牌局「合同上没有写的事」的现场' });
+  await expect(sceneImage).toBeVisible();
+  await expectDecodedImage(sceneImage);
   await expect(page.getByText('平台服务中心 · 下午 16:40')).toBeVisible();
   await expect(page.getByRole('region', { name: '起手身份' })).toContainText('灵活就业者');
 
-  await page.getByRole('button', { name: '去看我的手牌' }).click();
+  const viewHand = page.getByRole('button', { name: '去看我的手牌' });
+  await expectMinimumTouchTarget(viewHand);
+  await viewHand.click();
   const hand = page.getByRole('region', { name: '这一次，你拿哪段自己来回答？' });
   await expect(hand).toBeFocused();
   await hand.getByRole('button', { name: /^唤起/ }).first().click();

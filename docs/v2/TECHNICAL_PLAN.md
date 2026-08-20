@@ -76,7 +76,7 @@ growth-summary 展示童年牌册、成长倾向和路线；time-skip 生成并�
 
 ## 存档策略
 
-成年原型加入显式的故事/原型运行模式后，存档已升级为 `version: 4`：正式故事使用 `floating-life-cards.save.v4`，原型使用绑定当前包版本的 `floating-life-cards.prototype.v4`。两者不会互读或互相覆盖，也不会把旧构建原型误报成新构建试玩证据。接近发布时再决定是否为已完成的v1人生提供只读档案导入。
+成年原型加入显式的故事/原型运行模式后，当前存档已升级为 `version: 5`：正式故事使用 `floating-life-cards.save.v5`，原型使用绑定当前包版本的 `floating-life-cards.prototype.v5`。两者不会互读或互相覆盖，也不会把旧构建原型误报成新构建试玩证据；v4正式故事可迁移并补齐成年身份，旧原型不迁移。
 
 身份和内容引用必须在加载时验证 ID 是否仍存在。仅检查版本、seed 和 cards 数组不足以支持未来内容调整。
 

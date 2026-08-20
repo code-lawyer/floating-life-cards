@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">浮生牌局</string>
+    <string name="title_activity_main">浮生牌局</string>
+    <string name="package_name">com.fusheng.cards</string>
+    <string name="custom_url_scheme">com.fusheng.cards</string>
+</resources>

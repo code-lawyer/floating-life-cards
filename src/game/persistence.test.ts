@@ -87,4 +87,41 @@ describe('本地存档', () => {
     }));
     expect(loadGame()).toBeNull();
   });
+
+  it('拒绝没有生成身份或没有八张随身牌的身份阶段存档', () => {
+    const base = reduceGame(createGame(31), { type: 'BEGIN' });
+    localStorage.setItem('floating-life-cards.save.v5', JSON.stringify({
+      ...base,
+      phase: 'identity',
+      startingIdentity: null,
+      selectedDeck: [],
+    }));
+    expect(loadGame()).toBeNull();
+
+    localStorage.setItem('floating-life-cards.save.v5', JSON.stringify({
+      ...base,
+      phase: 'identity',
+      startingIdentity: 'elite-graduate',
+      selectedDeck: [],
+    }));
+    expect(loadGame()).toBeNull();
+  });
+
+  it('把旧v4成年故事迁移到v5并补出起手身份', () => {
+    const prototype = reduceGame(createGame(32), { type: 'START_PROTOTYPE', identityId: 'technical-worker' });
+    const legacyStory = {
+      ...prototype,
+      version: 4,
+      mode: 'story',
+      origin: {},
+      startingIdentity: null,
+    };
+    localStorage.setItem('floating-life-cards.save.v4', JSON.stringify(legacyStory));
+
+    const migrated = loadGame();
+
+    expect(migrated?.version).toBe(5);
+    expect(migrated?.startingIdentity).not.toBeNull();
+    expect(localStorage.getItem('floating-life-cards.save.v5')).not.toBeNull();
+  });
 });

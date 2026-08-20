@@ -23,6 +23,7 @@ export type Phase =
   | 'growth'
   | 'growth-result'
   | 'deck'
+  | 'identity'
   | 'encounter'
   | 'encounter-result'
   | 'adult-event'
@@ -253,7 +254,7 @@ export interface Ending {
 }
 
 export interface GameState {
-  version: 4;
+  version: 5;
   mode: GameMode;
   seed: number;
   rng: number;
@@ -287,6 +288,7 @@ export type GameAction =
   | { type: 'CONTINUE_GROWTH' }
   | { type: 'TOGGLE_DECK'; cardId: string }
   | { type: 'AUTO_DECK' }
+  | { type: 'CONFIRM_DECK' }
   | { type: 'START_PROTOTYPE'; identityId: StartingIdentityId }
   | { type: 'RESTART_PROTOTYPE' }
   | { type: 'BEGIN_ADVENTURE' }

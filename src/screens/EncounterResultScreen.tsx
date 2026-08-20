@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { AgeRail } from '../components/AgeRail';
+import { SceneArt } from '../components/SceneArt';
 import { CHAPTERS } from '../game/content';
 import { getChapter, reduceGame } from '../game/game';
 import { getStartingIdentity } from '../game/identities';
 import { formatPrototypePlaytestRecord } from '../game/playtestRecord';
+import { getChapterResultSceneVisual } from '../game/visuals';
 import type { GameState } from '../game/types';
 
 export function EncounterResultScreen({ state, dispatch, onExitPrototype }: {
@@ -13,6 +15,7 @@ export function EncounterResultScreen({ state, dispatch, onExitPrototype }: {
 }) {
   const [recordCopyStatus, setRecordCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
   const chapter = getChapter(state)!;
+  const chapterVisual = getChapterResultSceneVisual(chapter.id, chapter.title);
   const encounter = state.encounter!;
   const identity = getStartingIdentity(state.startingIdentity);
   const playtestRecord = formatPrototypePlaytestRecord(state);
@@ -37,6 +40,7 @@ export function EncounterResultScreen({ state, dispatch, onExitPrototype }: {
     <main className="screen encounter-result">
       <AgeRail age={chapter.year} label="结案" />
       <section className="screen__body">
+        <SceneArt visual={chapterVisual} className="scene-art--result" />
         <p className="eyebrow">{encounter.won ? '局面越过' : '局面未解'} · {encounter.progress} / {chapter.target}</p>
         <h1 className="display-title">{encounter.won ? '这一次，世界让了一步' : '你没有赢，但故事没有停'}</h1>
         <p className="lead">{encounter.won ? chapter.victory : chapter.setback}</p>

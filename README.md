@@ -1,6 +1,6 @@
 # 浮生牌局
 
-一款完全由文字、排版和手牌构成的浏览器人生冒险。玩家以普通人的身份出生，从 4 岁到 17 岁每年做出一次选择，获得一张与选择有关的成长牌并承担随机代价；18 岁后，从自己的记忆中挑出 8 张牌，与工作、城市、信任、行业变化和人生选择对局。
+一款以人生故事、永久记忆牌和选择为核心的跨端叙事卡牌游戏。玩家以普通人的身份出生，从 4 岁到 17 岁每年留下一个选择和一张记忆牌；18 岁先得到由童年经历生成的起手身份，再带 8 张记忆与工作、城市、信任、行业变化和人生选择对局。当前界面以“档案里的电影静帧”为视觉方向，为每个成长事件、成年事件和世界牌局配置剧情画面。
 
 ## 运行
 
@@ -18,11 +18,29 @@ npx playwright install chromium
 npm run verify
 ```
 
-`npm run verify` 会依次运行72项规则/组件测试、生产构建和3条成人原型浏览器旅程。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
+`npm run verify` 会依次运行规则/组件与1000种子平衡护栏、生产构建和5条真实浏览器旅程（含触摸竖屏与窄屏横屏）。也可以分别使用 `npm test`、`npm run build` 和 `npm run test:e2e`。
 
 制作阶段可运行 `npm run analyze:prototype`，穷举三个起手身份在固定合同困局中的合法决策空间。该命令只寻找明显数值死路，不代表真人胜率或乐趣。
 
-游戏不依赖后端，默认离线可玩，进度自动存入浏览器 `localStorage`。
+游戏不依赖后端，默认离线可玩，进度自动存入本地 `localStorage`。
+
+## 桌面与移动工程
+
+Windows 10/11 x64：
+
+```powershell
+npm run desktop:run       # 构建并直接启动桌面版
+npm run desktop:make      # 生成可执行目录和安装器
+npm run test:desktop      # 真实启动打包后的exe
+```
+
+iOS 与 Android 共用同一套 React、规则、内容和视觉资产：
+
+```powershell
+npm run mobile:sync
+```
+
+该命令会从 `package.json` 同步原生版本号、构建 Web 资产并更新两个原生工程。Android 发布仍需 JDK/Android Studio/签名密钥；iOS 发布仍需 macOS/Xcode/Apple 开发者签名。完整三端计划与门槛见 [docs/v3/RELEASE_PLAN.md](./docs/v3/RELEASE_PLAN.md)。
 
 ## 局域网真人试玩
 
@@ -37,8 +55,9 @@ npm run playtest
 ## 玩法速览
 
 - 出身：随机生成一份没有特殊加成的普通人档案，并得到固定底牌「普通人的底牌」。
-- 成长：4–17 岁共 14 个事件。每次从洞察、行动、共情三种做法中选择，获得对应牌，随后揭晓资源代价。
+- 成长：4–17 岁共 14 个事件。每次从洞察、行动、共情三种做法中选择，获得对应牌，随后揭晓资源代价；事件与选择都有剧情图像。
 - 组牌：成年时从 15 张记忆牌中带 8 张上路。
+- 起手身份：童年牌的学习、手艺、关系、担当、探索信号与三项成长倾向共同生成名校毕业生、职校技术员或灵活就业者，并展示三条形成原因。
 - 成年生活：每局从 15 个事件中抽取 10 个，穿插工资、居所、健康、关系、工作、家庭和重新学习等选择。
 - 对局：世界每轮打出一种局面，玩家从手牌中选择回应。行动克洞察、洞察克共情、共情克行动。
 - 变化机制：每场随机时代气候、人生状态、卡牌熟练升级、同型连用与三式组合，以及每局一次换手。
@@ -46,7 +65,7 @@ npm run playtest
 
 当前版本的完整策划见 [docs/GAME_DESIGN.md](./docs/GAME_DESIGN.md)，实现边界见 [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)。
 
-下一版本正在围绕“动态童年、成年起手身份与永久记忆牌”重新设计。已确认的产品边界、玩法方案、内容规范、技术迁移和路线图见 [docs/v2/README.md](./docs/v2/README.md)。
+早期“动态童年、成年起手身份与永久记忆牌”方案见 [docs/v2/README.md](./docs/v2/README.md)；其中身份跳切与永久记忆循环已经进入当前正式主流程。
 
 项目按正式游戏制作流程推进；当前阶段、完整系统地图、制作门槛、任务池和质量计划见 [docs/production/README.md](./docs/production/README.md)。
 
@@ -75,10 +94,15 @@ src/
     judge.ts         本地 / 远程叙事裁判适配器
     playtestRecord.ts 成人原型匿名试玩记录格式化
     persistence.ts   版本化本地存档
+    visuals.ts       剧情视觉注册与移动裁切焦点
     rng.ts           可复现随机数
     types.ts         共享领域类型
   App.tsx            阶段页面和玩家交互
-  styles.css         纯文字档案视觉系统
+  styles.css         档案电影静帧视觉与桌面/移动响应式布局
+desktop/             安全Electron桌面壳
+android/             Capacitor Android工程
+ios/                 Capacitor iOS工程
+public/art/          运行时WebP剧情资产
 e2e/                 Playwright玩家旅程
 docs/
   GAME_DESIGN.md
