@@ -1101,3 +1101,32 @@ button.deck-slot:hover { z-index: 1; background: white; box-shadow: 4px 4px 0 rg
 }
 
 .deck-screen .deck-intro .display-title { max-width: none; }
+
+.deck-screen .sticky-action {
+  scroll-margin-top: var(--sticky-header-scroll-offset);
+}
+
+.deck-actions-jump {
+  align-self: center;
+  margin-left: auto;
+  border-bottom: 2px solid currentColor;
+  padding: 7px 2px 5px;
+  color: var(--blue);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.deck-actions-jump:hover { color: var(--ink); }
+@media (max-width: 620px) {
+  .deck-actions-jump { grid-column: 1 / -1; justify-self: start; margin-left: 0; }
+}
+
+@media (max-width: 620px) {
+  .deck-screen .sticky-action {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    left: auto;
+  }
+}

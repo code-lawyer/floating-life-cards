@@ -268,7 +268,7 @@ function DeckScreen({ state, dispatch }: { state: GameState; dispatch: React.Dis
           })}
         </div>
       </section>
-      <footer className="sticky-action">
+      <footer id="deck-actions" className="sticky-action" aria-label="成年行囊操作">
         <button className="text-button" onClick={useRecommendedDeck}>恢复均衡建议</button>
         <p>{state.selectedDeck.length === 8 ? '八张已齐。成年后仍可在每场牌局里换一次手。' : `还需选择 ${8 - state.selectedDeck.length} 张；先从上方随身牌中移出，再补入新牌。`}</p>
         <button className="primary-button" disabled={!canBeginAdventure(state)} onClick={() => dispatch({ type: 'CONFIRM_DECK' })}>十八岁，确认行囊</button>
@@ -279,6 +279,7 @@ function DeckScreen({ state, dispatch }: { state: GameState; dispatch: React.Dis
             {approach}<span>{approach === '已选' ? selectedCards.length : state.cards.filter((card) => card.approach === approach).length}</span>
           </button>
         ))}
+        <a className="deck-actions-jump" href="#deck-actions">回到确认区</a>
       </nav>
       <details className="deck-rules" open={rulesOpen} onToggle={(event) => setRulesOpen(event.currentTarget.open)}>
         <summary>需要时再看：成年牌局的完整规则</summary>
