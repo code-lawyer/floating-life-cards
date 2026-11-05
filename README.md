@@ -1,6 +1,6 @@
 # 浮生牌局
 
-当前 Windows 桌面测试候选 **v1.7.2-rc.1「重新上路」**：童年的具体选择会在成年回响，每章之间可以重新整理八张记忆，结局留下真实决定。终审进一步修复存档时序、叙事连接测试竞态和触控目标尺寸。v6原位续玩，v4/v5沿用原故事。见 [终审记录](./docs/production/FINAL_AUDIT_1_7_2.md)、[版本说明](./docs/v3/RELEASE_NOTES_1.7.2.md) 与 [GitHub Releases](https://github.com/code-lawyer/floating-life-cards/releases)。Windows包尚未代码签名；移动工程已同步，真机与商店发行仍待验收。
+当前 Windows 桌面测试候选 **v1.7.2-rc.2「重新上路」**：童年的具体选择会在成年回响，每章之间可以重新整理八张记忆，结局留下真实决定。终审进一步修复存档时序、叙事连接测试竞态和触控目标尺寸。v6原位续玩，v4/v5沿用原故事。见 [终审记录](./docs/production/FINAL_AUDIT_1_7_2.md)、[版本说明](./docs/v3/RELEASE_NOTES_1.7.2.md) 与 [GitHub Releases](https://github.com/code-lawyer/floating-life-cards/releases)。Windows包尚未代码签名；移动工程已同步，真机与商店发行仍待验收。
 
 一款以人生故事、永久记忆牌和选择为核心的跨端叙事卡牌游戏。玩家以普通人的身份出生，从 4 岁到 17 岁每年留下一个选择和一张记忆牌；18 岁先得到由童年经历生成的起手身份，再带 8 张记忆与工作、城市、信任、行业变化和人生选择对局。当前界面以“档案里的电影静帧”为视觉方向，为每个成长事件、成年事件和世界牌局配置剧情画面。
 

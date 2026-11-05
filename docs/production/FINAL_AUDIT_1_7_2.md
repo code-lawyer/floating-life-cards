@@ -1,4 +1,4 @@
-# v1.7.2-rc.1 发布前终审
+# v1.7.2-rc.2 发布前终审
 
 日期：2026-11-05（America/Los_Angeles）。固定审查基线为 `4d8cbd9585577a5da3cd402ef16fffbda0eb3593`，包括此后全部开发修改与新增文件。用户明确授权审查、直接修复、同步GitHub并发布Release。本候选延续已有Windows桌面测试版形式。
 
@@ -28,7 +28,7 @@
 | 维度 | 评分 | 依据与边界 |
 | --- | --- | --- |
 | 可访问性 | 3/4 | 可见焦点、原生控件、模态关闭与主要44px目标；未做屏幕阅读器认证 |
-| 性能 | 3/4 | 生产JS约114.45KB gzip、CSS约14.05KB gzip；未做低端真机性能画像 |
+| 性能 | 3/4 | 生产JS约114.49KB gzip、CSS约14.05KB gzip；未做低端真机性能画像 |
 | 响应式 | 3/4 | 三视口完整流程和辅助触摸通过；物理设备、系统字体放大另验 |
 | 主题一致性 | 3/4 | 继续使用纸白、档案蓝、宋体标题与去色静帧；未新增独立主题 |
 | 实现一致性 | 3/4 | 单一规则与共享组件，局部修复保持既有视觉；全局设计文档仍有欠账 |
@@ -40,12 +40,19 @@
 
 E2E脚本此前未纳入TypeScript构建，导致两处 `test.use({ reducedMotion })` 未按有效配置设置浏览器。本轮加入浏览器/桌面测试与配置的类型检查，改用 `contextOptions.reducedMotion`，并在旅程中断言媒体查询确实生效。
 
+首轮候选 `v1.7.2-rc.1` 的[远端质量门](https://github.com/code-lawyer/floating-life-cards/actions/runs/42065019980)在Node22/24通过、Node26失败：Node26的原生Web Storage覆盖了jsdom存储。已在测试初始化中显式绑定当前jsdom窗口的localStorage/sessionStorage，保留真实Storage行为与每例清理。Node26本地复现26项失败，修复后完整206项通过；不改变游戏存档实现。保留原标签，不发布其安装器，继续以rc.2验收。
+
+官方npm审计发现19项依赖告警，其中Capacitor原生桥2项critical、Electron等6项high。按现有主版本更新Capacitor至8.6.0、Electron至43.8.7、Vite至8.3.6、Vitest至4.1.12及兼容的传递依赖；原生工程重新同步。依据[Capacitor公告](https://github.com/advisories/GHSA-rvm3-566m-v7fv)与[Electron公告](https://github.com/advisories/GHSA-qmv3-fv6v-rmhq)选择已修补版本。
+
+asar4的依赖范围仍停留在受影响的glob13/minimatch10，因此仅对 `@electron/asar@^4.0.1` 精确覆盖glob14.0.3、minimatch11.0.4；asar3安装器链保持原有API。所用版本不在[glob取消缺陷](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)及[minimatch放大缺陷](https://github.com/advisories/GHSA-g3hv-75wg-m249)的受影响范围内。后续asar4自身接入修补版本时应删除此覆盖；Windows实际打包与EXE测试用于验证当前调用兼容性。全量 `npm audit --registry=https://registry.npmjs.org` 返回0项告警；CI新增high及以上的依赖安全门。
+
 - `npm run verify`：20个Vitest文件、206项测试，TypeScript与生产构建，20条Chromium旅程全部通过。
+- 更新后的锁文件全部Node范围与22.22.2、24.15.0、26.0.0兼容；Node26完整206项单测另行通过。
 - `npm run validate:content`：通过；保留原有25项旧标签提醒。静态检查保留原有3条已解释告警。
 - `npm run desktop:package` 与 `npm run test:desktop`：v1.7.2可执行目录生成，真实EXE启动测试1项通过。
 - `npm run mobile:sync`：Android/iOS版本与Web资源同步至1.7.2。
 
-源码以干净、版本匹配的 `v1.7.2-rc.1` 标签生成安装器；精确提交与SHA-256由Release中的构建清单提供。远端CI执行结果在Release发布说明中记录，不能用本地验证代替。
+源码以干净、版本匹配的 `v1.7.2-rc.2` 标签生成安装器；精确提交与SHA-256由Release中的构建清单提供。远端CI执行结果在Release发布说明中记录，不能用本地验证代替。
 
 ## 发布边界
 
