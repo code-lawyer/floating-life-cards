@@ -87,6 +87,15 @@ const ADULT_EVENT_VISUAL_IDS = [
 ] as const;
 
 export function getAdultEventSceneVisual(eventId: string, age: number, title: string): SceneVisual {
+  // The same objects recur across a life; these plates are deliberate visual callbacks.
+  const echoArt: Record<string, string> = {
+    'repair-call': './art/growth-09-v1.webp',
+    'old-classmate': './art/adult-relationship-crossroad-v1.webp',
+  };
+  if (echoArt[eventId]) return makeVisual({
+    id: `adult-${eventId}`, src: echoArt[eventId], alt: `${age} 岁「${title}」的旧事回响`,
+    caption: '旧事回响 · 同一段记忆，到了不同的人生现场', tone: 'adult',
+  }, layoutFor(eventId === 'repair-call' ? 1 : 2));
   const index = ADULT_EVENT_VISUAL_IDS.indexOf(eventId as (typeof ADULT_EVENT_VISUAL_IDS)[number]);
   if (index < 0) throw new Error(`没有为成年事件 ${eventId} 配置剧情视觉`);
   return makeVisual({

@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { AgeRail } from '../components/AgeRail';
 import { SceneArt } from '../components/SceneArt';
 import { CHAPTERS } from '../game/content';
-import { getChapter, reduceGame } from '../game/game';
+import { getChapter } from '../game/game';
 import { getStartingIdentity } from '../game/identities';
 import { formatPrototypePlaytestRecord } from '../game/playtestRecord';
 import { getChapterResultSceneVisual } from '../game/visuals';
-import type { GameState } from '../game/types';
+import type { Dispatch } from 'react';
+import type { GameAction, GameState } from '../game/types';
 
 export function EncounterResultScreen({ state, dispatch, onExitPrototype }: {
   state: GameState;
-  dispatch: React.Dispatch<Parameters<typeof reduceGame>[1]>;
+  dispatch: Dispatch<GameAction>;
   onExitPrototype: () => void;
 }) {
   const [recordCopyStatus, setRecordCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
@@ -46,6 +47,7 @@ export function EncounterResultScreen({ state, dispatch, onExitPrototype }: {
         <p className="lead">{encounter.won ? chapter.victory : chapter.setback}</p>
         <div className="round-ledger">
           {encounter.records.map((record, index) => (
+            // 回合记录只追加、不重排，索引参与 key 是安全的。
             <div key={`${record.cardTitle}-${index}`}>
               <span>第 {index + 1} 轮</span><b>{record.cardTitle}</b><span>对 {record.intentTitle}</span>
               <strong>{record.playerScore} : {record.worldScore}</strong>

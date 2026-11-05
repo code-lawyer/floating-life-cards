@@ -11,6 +11,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "src/game/**/*.ts"],
+  "include": ["scripts/**/*.ts", "src/game/**/*.ts", "e2e/**/*.ts", "desktop-e2e/**/*.ts", "playwright*.config.ts"],
   "exclude": ["src/game/**/*.test.ts"]
 }

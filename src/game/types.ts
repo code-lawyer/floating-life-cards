@@ -24,6 +24,7 @@ export type Phase =
   | 'growth-result'
   | 'deck'
   | 'identity'
+  | 'interlude'
   | 'encounter'
   | 'encounter-result'
   | 'adult-event'
@@ -43,12 +44,9 @@ export interface Traits {
   empathy: number;
 }
 
-export interface CardEffect {
-  kind: 'resource' | 'draw' | 'echo' | 'steady';
-  resource?: ResourceKey;
-  amount?: number;
-  description: string;
-}
+export type CardEffect =
+  | { kind: 'resource'; resource: ResourceKey; amount: number; description: string }
+  | { kind: 'draw' | 'echo' | 'steady'; description: string };
 
 export interface LifeCard {
   id: string;
@@ -85,6 +83,20 @@ export interface GrowthEvent {
   text: string;
   question: string;
   choices: GrowthChoice[];
+  echo?: MemoryEcho;
+  artAge?: number;
+}
+
+/** A recalled event points to an actual card in this life, never an invented past. */
+export interface MemoryEcho {
+  sourceAge: number;
+  text: string;
+}
+
+export interface MemoryRequirement {
+  age: number;
+  choiceIds: string[];
+  text: string;
 }
 
 export interface Origin {
@@ -162,6 +174,8 @@ export interface AdultEventChoice {
   mark?: AdultMark;
   removeMark?: string;
   upgradeCard?: boolean;
+  memoryRequirement?: MemoryRequirement;
+  upgradeMemoryAge?: number;
   outcomes: string[];
 }
 
@@ -174,6 +188,7 @@ export interface AdultEvent {
   text: string;
   question: string;
   choices: AdultEventChoice[];
+  echo?: MemoryEcho;
 }
 
 export interface AdultEventSlot {
@@ -254,7 +269,9 @@ export interface Ending {
 }
 
 export interface GameState {
-  version: 5;
+  version: 7;
+  storyEdition: 'classic' | 'echoes';
+  storyChoices: Record<string, string>;
   mode: GameMode;
   seed: number;
   rng: number;
@@ -266,6 +283,9 @@ export interface GameState {
   startingIdentity: StartingIdentityId | null;
   cards: LifeCard[];
   selectedDeck: string[];
+  /** An uncommitted chapter selection; the completed encounter keeps its original deck. */
+  deckDraft: string[] | null;
+  deckRevisions: DeckRevision[];
   growthResult: GrowthResult | null;
   encounter: EncounterState | null;
   chapterResults: boolean[];
@@ -280,6 +300,12 @@ export interface GameState {
   ending: Ending | null;
 }
 
+export interface DeckRevision {
+  chapterIndex: number;
+  before: string[];
+  after: string[];
+}
+
 export type GameAction =
   | { type: 'BEGIN' }
   | { type: 'ACCEPT_ORIGIN' }
@@ -289,6 +315,8 @@ export type GameAction =
   | { type: 'TOGGLE_DECK'; cardId: string }
   | { type: 'AUTO_DECK' }
   | { type: 'CONFIRM_DECK' }
+  | { type: 'RESTORE_DECK' }
+  | { type: 'CONFIRM_INTERLUDE' }
   | { type: 'START_PROTOTYPE'; identityId: StartingIdentityId }
   | { type: 'RESTART_PROTOTYPE' }
   | { type: 'BEGIN_ADVENTURE' }
@@ -298,4 +326,4 @@ export type GameAction =
   | { type: 'CONTINUE_ADVENTURE' }
   | { type: 'CHOOSE_ADULT_EVENT'; choiceId: string }
   | { type: 'CONTINUE_ADULT_EVENT' }
-  | { type: 'RESTART'; seed?: number };
+  | { type: 'RESTART'; seed: number };

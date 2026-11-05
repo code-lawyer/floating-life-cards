@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { canChooseAdultChoice, createGame, getAdultChoices, getAdultEvent, getGrowthEvent, previewCardPlay, reduceGame } from './game';
-import type { GameState, Resources } from './types';
+import { isValidGameState } from './saveValidation';
+import type { GameState } from './types';
 
-function assertResourceBounds(resources: Resources) {
-  for (const value of Object.values(resources)) expect(value).toBeGreaterThanOrEqual(0);
-  for (const value of Object.values(resources)) expect(value).toBeLessThanOrEqual(9);
+function assertStateBounds(state: GameState) {
+  for (const value of Object.values(state.resources)) expect(value).toBeGreaterThanOrEqual(0);
+  for (const value of Object.values(state.resources)) expect(value).toBeLessThanOrEqual(9);
+  expect(isValidGameState(state, 'story'), `seed ${state.seed} / ${state.phase} 的正常状态不能被存档校验误拒绝`).toBe(true);
 }
 
-function completeStory(seed: number): GameState {
+function completeStory(seed: number, edition: GameState['storyEdition'] = 'echoes'): GameState {
   let state = reduceGame(createGame(seed), { type: 'BEGIN' });
+  state = { ...state, storyEdition: edition };
   state = reduceGame(state, { type: 'ACCEPT_ORIGIN' });
 
   while (state.phase === 'growth' || state.phase === 'growth-result') {
@@ -19,7 +22,7 @@ function completeStory(seed: number): GameState {
     } else {
       state = reduceGame(state, { type: 'CONTINUE_GROWTH' });
     }
-    assertResourceBounds(state.resources);
+    assertStateBounds(state);
   }
 
   state = reduceGame(state, { type: 'CONFIRM_DECK' });
@@ -40,10 +43,12 @@ function completeStory(seed: number): GameState {
       const choice = choices[(seed + state.adultEventsResolved.length) % choices.length]!;
       state = reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: choice.id });
       expect(state.phase, `seed ${seed} 应能解决成年事件「${event.title}」`).toBe('adult-result');
+    } else if (state.phase === 'interlude') {
+      state = reduceGame(state, { type: 'CONFIRM_INTERLUDE' });
     } else if (state.phase === 'adult-result') {
       state = reduceGame(state, { type: 'CONTINUE_ADULT_EVENT' });
     }
-    assertResourceBounds(state.resources);
+    assertStateBounds(state);
     safety += 1;
   }
   expect(safety, `seed ${seed} 不应陷入状态死循环`).toBeLessThan(200);
@@ -51,6 +56,15 @@ function completeStory(seed: number): GameState {
 }
 
 describe('正式人生批量平衡护栏', () => {
+  it('种子101完成全部事件后仍有1点心气，结局不能误判为耗尽', () => {
+    const state = completeStory(101, 'classic');
+    expect(state.chapterResults).toHaveLength(5);
+    expect(state.adultEventsResolved).toHaveLength(10);
+    expect(state.chapterResults.filter(Boolean)).toHaveLength(2);
+    expect(state.resources.heart).toBe(1);
+    expect(state.ending?.title).toBe('改写规则的人');
+  });
+
   it('1000个确定性人生都不会透支、锁死或缺失身份与结局', () => {
     const identities = new Set<string>();
     const chapterOutcomes = new Set<boolean>();
@@ -59,10 +73,30 @@ describe('正式人生批量平衡护栏', () => {
       expect(state.phase).toBe('ending');
       expect(state.startingIdentity).not.toBeNull();
       expect(state.ending).not.toBeNull();
+      if (state.chapterResults.filter(Boolean).length < 3) {
+        expect(state.ending?.title, `seed ${seed} 的心气边界应与结局一致`).toBe(
+          state.resources.heart === 0 ? '暂时离席的人' : '改写规则的人',
+        );
+      }
       identities.add(state.startingIdentity!);
       state.chapterResults.forEach((won) => chapterOutcomes.add(won));
     }
     expect(identities).toEqual(new Set(['elite-graduate', 'technical-worker', 'gig-worker']));
     expect(chapterOutcomes).toEqual(new Set([true, false]));
+  }, 30_000);
+
+  it('大多数人生能打完全部五场世界牌局，提前力竭是少数而非常态', () => {
+    // 新故事在启程时把心气补至最低3点；仍允许失败和提前结卷。
+    // 自动策略只看数值可达性，真人是否理解代价由试玩单独判断。
+    let completedAllChapters = 0;
+    let endedAfterFirstChapter = 0;
+    for (let seed = 1; seed <= 300; seed += 1) {
+      const chapters = completeStory(seed).chapterResults.length;
+      if (chapters === 5) completedAllChapters += 1;
+      if (chapters === 1) endedAfterFirstChapter += 1;
+    }
+
+    expect(completedAllChapters + endedAfterFirstChapter).toBeGreaterThan(0);
+    expect(completedAllChapters / 300, '休整后的新故事应有至少四分之三能走完五章').toBeGreaterThanOrEqual(0.75);
   }, 30_000);
 });

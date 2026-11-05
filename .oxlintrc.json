@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc", "import", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": "off",
+    "promise/always-return": "off",
+    "oxc/no-map-spread": "off",
+    "no-empty-pattern": "off",
+    "react/exhaustive-effect-dependencies": "warn",
+    "react/no-array-index-key": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["e2e/**", "desktop-e2e/**"],
+      "rules": {
+        "no-await-in-loop": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist",
+    "out",
+    "node_modules",
+    "android",
+    "ios",
+    "desktop-release",
+    "desktop-stage",
+    "playwright-report",
+    "test-results",
+    "public"
+  ]
+}

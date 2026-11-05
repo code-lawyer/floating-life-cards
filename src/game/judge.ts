@@ -8,7 +8,7 @@ export interface JudgeRequest {
 }
 
 interface JudgeAdapter {
-  narrate(request: JudgeRequest): Promise<string | null>;
+  narrate(request: JudgeRequest, signal?: AbortSignal): Promise<string | null>;
 }
 
 class LocalJudge implements JudgeAdapter {
@@ -20,8 +20,11 @@ class LocalJudge implements JudgeAdapter {
 class RemoteJudge implements JudgeAdapter {
   constructor(private readonly endpoint: string) {}
 
-  async narrate(request: JudgeRequest): Promise<string | null> {
+  async narrate(request: JudgeRequest, signal?: AbortSignal): Promise<string | null> {
+    if (signal?.aborted) return null;
     const controller = new AbortController();
+    const cancel = () => controller.abort();
+    signal?.addEventListener('abort', cancel, { once: true });
     const timeout = window.setTimeout(() => controller.abort(), 5000);
     try {
       const response = await fetch(this.endpoint, {
@@ -42,11 +45,12 @@ class RemoteJudge implements JudgeAdapter {
       return null;
     } finally {
       window.clearTimeout(timeout);
+      signal?.removeEventListener('abort', cancel);
     }
   }
 }
 
-export async function requestJudgeNarration(endpoint: string, request: JudgeRequest): Promise<string | null> {
+export async function requestJudgeNarration(endpoint: string, request: JudgeRequest, signal?: AbortSignal): Promise<string | null> {
   const adapter: JudgeAdapter = endpoint.trim() ? new RemoteJudge(endpoint.trim()) : new LocalJudge();
-  return adapter.narrate(request);
+  return adapter.narrate(request, signal);
 }

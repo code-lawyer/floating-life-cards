@@ -47,6 +47,8 @@ test.describe('十八岁组牌页布局', () => {
       }
 
       await page.getByRole('link', { name: '回到确认区' }).scrollIntoViewIfNeeded();
+      const returnBox = await page.getByRole('link', { name: '回到确认区' }).boundingBox();
+      expect(returnBox!.height).toBeGreaterThanOrEqual(44);
       await page.getByRole('link', { name: '回到确认区' }).click();
       await expect(action).toBeInViewport();
 

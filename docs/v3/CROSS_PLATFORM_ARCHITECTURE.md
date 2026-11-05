@@ -19,7 +19,7 @@ game/content + game/game + GameState
 - 表现模块：React屏幕、响应式视觉和触摸/键盘输入；
 - 桌面适配器：`desktop/main.cjs`，只负责安全窗口和本地文件加载；
 - 移动适配器：`capacitor.config.ts`、`ios/`、`android/`，只负责原生容器；
-- 发布适配器：Node 22 固定的 Windows 打包脚本。Node 24 只用于日常开发。
+- 发布适配器：Windows 打包脚本使用 npm 脚本 PATH 中的 Node；开发与打包统一遵循 `package.json` 的版本范围（22.22.2–22.x、24.15.0–24.x 或 ≥26.0.0）。
 
 Electron 和 Capacitor 是两个真实适配器，因此平台差异应收敛在壳层。任何“如果是 iOS 就改变牌力”的代码都属于架构违规。
 

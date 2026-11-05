@@ -11,6 +11,10 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.22.2', '24.15.0', '26.0.0']
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -18,11 +22,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - name: Install project dependencies
-        run: npm ci
+        run: npm ci --engine-strict
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
@@ -34,7 +38,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v5
         with:
-          name: playwright-report
+          name: playwright-report-node-${{ matrix.node }}
           path: |
             playwright-report/
             test-results/

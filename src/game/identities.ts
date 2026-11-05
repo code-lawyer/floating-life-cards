@@ -31,10 +31,16 @@ export function getStartingIdentity(id: StartingIdentityId | null | undefined): 
 const TAG_SIGNALS: Record<MemoryTag, string[]> = {
   学习: ['学习', '方法', '判断', '媒介', '未来', '计划', '观察', '耐心'],
   手艺: ['手艺', '技术', '制作', '修理', '工作', '金钱'],
-  关系: ['关系', '友谊', '家庭', '陪伴', '合作', '沟通', '倾听', '包容', '纪念', '告别'],
+  关系: ['关系', '友谊', '家庭', '陪伴', '合作', '沟通', '倾听', '包容', '善意', '纪念', '告别'],
   担当: ['担当', '责任', '领导', '诚实', '正义', '边界', '组织', '规则'],
   探索: ['探索', '远方', '冒险', '勇气', '独立', '舞台', '好奇'],
 };
+
+// 童年内容仍使用v1叙事标签，靠TAG_SIGNALS桥接到五类成长画像。
+// 未被桥接的标签不会进入任何画像，卡牌会安静地失去身份线索，因此需要可校验。
+export function isRecognizedTagSignal(signal: string): boolean {
+  return Object.values(TAG_SIGNALS).some((signals) => signals.includes(signal));
+}
 
 export interface StartingIdentityProfile {
   id: StartingIdentityId;
@@ -43,7 +49,7 @@ export interface StartingIdentityProfile {
   reasons: [string, string, string];
 }
 
-export function getMemoryTags(card: LifeCard): MemoryTag[] {
+export function getMemoryTags(card: Pick<LifeCard, 'tags'>): MemoryTag[] {
   return (Object.entries(TAG_SIGNALS) as Array<[MemoryTag, string[]]>)
     .filter(([, signals]) => signals.some((signal) => card.tags.includes(signal)))
     .map(([tag]) => tag);

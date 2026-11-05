@@ -1,7 +1,9 @@
-import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
+import { ADULT_EVENTS, CHAPTERS, WORLD_CLIMATES, makeOrigin, makeOriginCard, originOptions } from './content';
+import { ADULT_EVENTS_PER_CHAPTER, CONSTRAINT_FALLBACK, DECK_SIZE } from './constants';
 import { deriveStartingIdentity, getIdentityCardBonus, getStartingIdentity, identityMakesFirstRedrawFree } from './identities';
 import { getPrototypeChapter, PROTOTYPE_CARDS, PROTOTYPE_CLIMATE, PROTOTYPE_DECK_IDS, PROTOTYPE_SEED } from './prototype';
 import { shuffle, takeOne } from './rng';
+import { ALL_ADULT_EVENTS, getDepartureRecovery, getScheduledEcho, personalPostscript, remembersChoice, resolveGrowthEvent } from './story';
 import type {
   Approach,
   AdultEvent,
@@ -25,7 +27,9 @@ const HAND_SIZE = 4;
 
 export function createGame(seed = Date.now() >>> 0): GameState {
   return {
-    version: 5,
+    version: 7,
+    storyEdition: 'echoes',
+    storyChoices: {},
     mode: 'story',
     seed,
     rng: seed || 0x6d2b79f5,
@@ -37,6 +41,8 @@ export function createGame(seed = Date.now() >>> 0): GameState {
     startingIdentity: null,
     cards: [],
     selectedDeck: [],
+    deckDraft: null,
+    deckRevisions: [],
     growthResult: null,
     encounter: null,
     chapterResults: [],
@@ -53,7 +59,7 @@ export function createGame(seed = Date.now() >>> 0): GameState {
 }
 
 export function getGrowthEvent(state: GameState): GrowthEvent | null {
-  return GROWTH_EVENTS.find((event) => event.age === state.age) ?? null;
+  return resolveGrowthEvent(state);
 }
 
 function getChapterAt(state: GameState, chapterIndex: number): Chapter | null {
@@ -68,13 +74,12 @@ export function getChapter(state: GameState): Chapter | null {
 }
 
 export function getAdultEvent(state: GameState): AdultEvent | null {
-  return state.activeAdultEventId ? ADULT_EVENTS.find((event) => event.id === state.activeAdultEventId) ?? null : null;
+  return state.activeAdultEventId ? ALL_ADULT_EVENTS.find((event) => event.id === state.activeAdultEventId) ?? null : null;
 }
 
 function makeConstraintFallback(event: AdultEvent): AdultEventChoice {
   return {
-    id: 'constraint-fallback',
-    verb: '先让现实替你决定',
+    ...CONSTRAINT_FALLBACK,
     detail: '眼下没有足够的心气、余钱或人情承担原来的选项；事情仍会向前。',
     changes: { pressure: 2 },
     outcomes: [`你暂时没有能力主动处理「${event.title}」。局面替你作了一个并不舒服的决定，你记下这份限制，也继续往下生活。`],
@@ -83,6 +88,7 @@ function makeConstraintFallback(event: AdultEvent): AdultEventChoice {
 
 export function getAdultChoiceBlockReason(state: GameState, choice: AdultEventChoice): string | null {
   if (state.phase !== 'adult-event') return '当前不在成年选择阶段';
+  if (choice.memoryRequirement && !remembersChoice(state, choice.memoryRequirement)) return choice.memoryRequirement.text;
   if (choice.requirement && state.resources[choice.requirement.resource] < choice.requirement.min) {
     return choice.requirement.text;
   }
@@ -119,7 +125,7 @@ export function getWorldPower(state: GameState): number | null {
 }
 
 export function canBeginAdventure(state: GameState): boolean {
-  return (state.phase === 'deck' || state.phase === 'identity') && state.selectedDeck.length === 8;
+  return (state.phase === 'deck' || state.phase === 'identity') && state.selectedDeck.length === DECK_SIZE;
 }
 
 function assignStartingIdentity(state: GameState): GameState {
@@ -186,7 +192,7 @@ function autoSelect(cards: LifeCard[]): string[] {
   const remaining = cards
     .filter((card) => !picked.some((item) => item.id === card.id))
     .sort((a, b) => b.power + b.guard - (a.power + a.guard));
-  return [...picked, ...remaining].slice(0, 8).map((card) => card.id);
+  return [...picked, ...remaining].slice(0, DECK_SIZE).map((card) => card.id);
 }
 
 function refillHand(encounter: EncounterState, target: number, rng: number): [EncounterState, number] {
@@ -269,8 +275,10 @@ function buildAdultSchedule(state: GameState): [GameState['adultSchedule'], numb
     const pool = ADULT_EVENTS.filter((event) => event.afterChapter === afterChapter);
     let shuffled: AdultEvent[];
     [shuffled, rng] = shuffle(pool, rng);
+    const echo = getScheduledEcho(state, afterChapter);
+    const selected = echo ? [shuffled[0]!, echo] : shuffled.slice(0, ADULT_EVENTS_PER_CHAPTER);
     schedule.push(
-      ...shuffled.slice(0, 2).map((event) => ({ eventId: event.id, afterChapter, age: event.age })),
+      ...selected.map((event) => ({ eventId: event.id, afterChapter, age: event.age })),
     );
   }
   return [schedule.sort((a, b) => a.afterChapter - b.afterChapter || a.age - b.age), rng];
@@ -300,9 +308,32 @@ function advanceAdultJourney(state: GameState): GameState {
     const ending = endingFor(state);
     return { ...state, phase: 'ending', activeAdultEventId: null, ending };
   }
-  const recovery = Math.max(0, 2 + markAmount(state, 'recovery'));
-  const recovered = changeResource(changeResource(state.resources, 'heart', recovery), 'pressure', -1);
+  if (state.storyEdition === 'echoes') {
+    return { ...state, phase: 'interlude', activeAdultEventId: null, adultEventResult: null, deckDraft: [...state.selectedDeck] };
+  }
+  const recovery = getChapterRecovery(state);
+  const recovered = changeResource(changeResource(state.resources, 'heart', recovery.heart), 'pressure', recovery.pressure);
   return startEncounter({ ...state, resources: recovered, activeAdultEventId: null }, nextChapter);
+}
+
+/** The preview is the actual capped change, including ongoing life-state effects. */
+export function getChapterRecovery(state: GameState): Pick<Resources, 'heart' | 'pressure'> {
+  return {
+    heart: Math.min(MAX_RESOURCE - state.resources.heart, Math.max(0, 2 + markAmount(state, 'recovery'))),
+    pressure: state.resources.pressure > 0 ? -1 : 0,
+  };
+}
+
+export function getNextChapter(state: GameState): Chapter | null {
+  return state.mode === 'story' && state.encounter ? CHAPTERS[state.encounter.chapterIndex + 1] ?? null : null;
+}
+
+export function canConfirmInterlude(state: GameState): boolean {
+  return state.mode === 'story' && state.storyEdition === 'echoes' && state.phase === 'interlude'
+    && Boolean(getNextChapter(state)) && state.resources.heart > 0 && Boolean(state.encounter?.resolved)
+    && !state.adultSchedule.some((slot) => slot.afterChapter === state.encounter?.chapterIndex && !state.adultEventsResolved.includes(slot.eventId))
+    && state.deckDraft?.length === DECK_SIZE && new Set(state.deckDraft).size === DECK_SIZE
+    && state.deckDraft.every((id) => state.cards.some((card) => card.id === id));
 }
 
 function traitBonus(state: GameState, approach: Approach): number {
@@ -374,7 +405,7 @@ function resolveText(card: LifeCard, intent: Intent, score: number, world: numbe
   return `${remembered}${response}它还不足以越过${intent.title}，却让这次受挫不再只是沉默。`;
 }
 
-function endingFor(state: GameState): Ending {
+function baseEndingFor(state: GameState): Ending {
   const wins = state.chapterResults.filter(Boolean).length;
   const dominant = Object.entries(state.traits).sort((a, b) => b[1] - a[1])[0]?.[0];
   if (wins === CHAPTERS.length) {
@@ -392,7 +423,7 @@ function endingFor(state: GameState): Ending {
       postscript: '你终于不再问哪张牌最强，而是知道何时该把哪段自己放到桌上。',
     };
   }
-  if (state.resources.heart <= 1) {
+  if (state.resources.heart === 0) {
     return {
       title: '暂时离席的人', kicker: '休息不是一张废牌。',
       text: '你曾把坚持误解成永远不能停下。最后，身体替你作出了决定。牌局暂时远去，生活缩小到睡好一觉、回一条消息、重新吃下一顿热饭。',
@@ -404,6 +435,11 @@ function endingFor(state: GameState): Ending {
     text: '按世界给出的计分法，你输得不少。可你开始辨认：哪些门槛必须跨，哪些掌声可以不要，哪些关系即使昂贵也值得保留。',
     postscript: '你的档案没有盖上“成功”或“失败”的章。最后一页只有一行手写字：下次，由我来定题。',
   };
+}
+
+function endingFor(state: GameState): Ending {
+  const ending = baseEndingFor(state);
+  return { ...ending, postscript: personalPostscript(state) ?? ending.postscript };
 }
 
 export function reduceGame(state: GameState, action: GameAction): GameState {
@@ -436,6 +472,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       const resultText = `${selected.detail}${cost.text}`;
       return {
         ...state, rng, resources, traits, cards: [...state.cards, card], phase: 'growth-result',
+        storyChoices: { ...state.storyChoices, [`growth:${event.age}`]: selected.id },
         growthResult: { age: event.age, choice: selected.verb, card, cost, text: resultText },
         journal: [...state.journal, { stamp: `${event.age} 岁`, title: event.title, body: `${selected.verb}。你得到「${card.title}」。${cost.text}`, tone: cost.amount > 0 ? 'bad' : 'good' }],
       };
@@ -446,17 +483,43 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       return { ...state, age: state.age + 1, phase: 'growth', growthResult: null };
     }
     case 'TOGGLE_DECK': {
-      if (state.phase !== 'deck' || !state.cards.some((card) => card.id === action.cardId)) return state;
-      const exists = state.selectedDeck.includes(action.cardId);
-      if (!exists && state.selectedDeck.length >= 8) return state;
-      return { ...state, selectedDeck: exists ? state.selectedDeck.filter((id) => id !== action.cardId) : [...state.selectedDeck, action.cardId] };
+      if (!['deck', 'interlude'].includes(state.phase) || !state.cards.some((card) => card.id === action.cardId)) return state;
+      const deck = state.phase === 'interlude' ? state.deckDraft : state.selectedDeck;
+      if (!deck) return state;
+      const exists = deck.includes(action.cardId);
+      if (!exists && deck.length >= DECK_SIZE) return state;
+      const selected = exists ? deck.filter((id) => id !== action.cardId) : [...deck, action.cardId];
+      return state.phase === 'interlude' ? { ...state, deckDraft: selected } : { ...state, selectedDeck: selected };
     }
     case 'AUTO_DECK':
       return state.phase === 'deck' ? { ...state, selectedDeck: autoSelect(state.cards) } : state;
     case 'CONFIRM_DECK':
-      return state.phase === 'deck' && state.selectedDeck.length === 8
+      return state.phase === 'deck' && state.selectedDeck.length === DECK_SIZE
         ? { ...assignStartingIdentity(state), phase: 'identity' }
         : state;
+    case 'RESTORE_DECK':
+      return state.phase === 'interlude' ? { ...state, deckDraft: [...state.selectedDeck] } : state;
+    case 'CONFIRM_INTERLUDE': {
+      if (!canConfirmInterlude(state)) return state;
+      const nextChapterIndex = state.encounter!.chapterIndex + 1;
+      const chapter = CHAPTERS[nextChapterIndex]!;
+      const after = [...state.deckDraft!];
+      const added = state.cards.filter((card) => after.includes(card.id) && !state.selectedDeck.includes(card.id));
+      const removed = state.cards.filter((card) => state.selectedDeck.includes(card.id) && !after.includes(card.id));
+      const recovery = getChapterRecovery(state);
+      return startEncounter({
+        ...state, selectedDeck: after, deckDraft: null,
+        deckRevisions: [...state.deckRevisions, { chapterIndex: nextChapterIndex, before: [...state.selectedDeck], after }],
+        resources: changeResource(changeResource(state.resources, 'heart', recovery.heart), 'pressure', recovery.pressure),
+        journal: [...state.journal, {
+          stamp: `${chapter.year} 岁 · 重新上路`, title: '这一次，带上哪些自己',
+          body: added.length
+            ? `你把${removed.map((card) => `「${card.title}」`).join('、')}放回牌册，带上了${added.map((card) => `「${card.title}」`).join('、')}。所有记忆仍在；下一程是「${chapter.title}」。`
+            : `你重新看过这些经历，仍决定带着原来的八张牌进入「${chapter.title}」。`,
+          tone: 'plain',
+        }],
+      }, nextChapterIndex);
+    }
     case 'START_PROTOTYPE': {
       if (state.phase !== 'title') return state;
       return startPrototype(action.identityId);
@@ -471,7 +534,15 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       let adultSchedule: GameState['adultSchedule'];
       let rng: number;
       [adultSchedule, rng] = buildAdultSchedule(identifiedState);
-      return startEncounter({ ...identifiedState, rng, adultSchedule }, 0);
+      const recovered = getDepartureRecovery(identifiedState);
+      return startEncounter({
+        ...identifiedState, rng, adultSchedule,
+        resources: changeResource(identifiedState.resources, 'heart', recovered),
+        journal: recovered > 0 ? [...identifiedState.journal, {
+          stamp: '启程前', title: '给自己一点喘息',
+          body: `在正式出发前，你留出一段时间休整。心气恢复 ${recovered} 点至 3 点；那些已经付出的代价仍在，接下来也有了尝试的余力。`, tone: 'good',
+        }] : identifiedState.journal,
+      }, 0);
     }
     case 'PLAY_CARD': {
       if (state.phase !== 'encounter' || !state.encounter || state.encounter.resolved) return state;
@@ -493,7 +564,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
         resources = changeResource(resources, 'pressure', 1);
       }
       if (triad) resources = changeResource(resources, 'pressure', -1);
-      if (card.effect.kind === 'resource' && card.effect.resource && card.effect.amount && (outcome === 'win' || card.effect.resource === 'pressure')) {
+      if (card.effect.kind === 'resource' && (outcome === 'win' || card.effect.resource === 'pressure')) {
         resources = changeResource(resources, card.effect.resource, card.effect.amount);
       }
       const nextExperience = (state.cardExperience[card.id] ?? 0) + 1;
@@ -586,8 +657,10 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       [outcome, rng] = takeOne(choice.outcomes, rng);
       let upgradedCardId: string | null = null;
       let upgradedCards = state.upgradedCards;
-      if (choice.upgradeCard) {
-        const candidates = state.selectedDeck.filter((id) => !state.upgradedCards.includes(id));
+      if (choice.upgradeCard || choice.upgradeMemoryAge !== undefined) {
+        const candidates = choice.upgradeMemoryAge !== undefined
+          ? state.cards.filter((card) => card.originAge === choice.upgradeMemoryAge && !state.upgradedCards.includes(card.id)).map((card) => card.id)
+          : state.selectedDeck.filter((id) => !state.upgradedCards.includes(id));
         if (candidates.length > 0) {
           [upgradedCardId, rng] = takeOne(candidates, rng);
           upgradedCards = [...state.upgradedCards, upgradedCardId];
@@ -604,6 +677,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       };
       return {
         ...state, rng, resources, traits, marks, upgradedCards, adultEventResult, phase: 'adult-result',
+        storyChoices: { ...state.storyChoices, [`adult:${event.id}`]: choice.id },
         journal: [...state.journal, {
           stamp: `${event.age} 岁`, title: event.title,
           body: `${choice.verb}。${outcome}${upgradedCard ? `「${upgradedCard.title}」因此被重新理解。` : ''}`,
@@ -619,7 +693,7 @@ export function reduceGame(state: GameState, action: GameAction): GameState {
       return advanceAdultJourney({ ...state, adultEventsResolved, activeAdultEventId: null, adultEventResult: null });
     }
     case 'RESTART':
-      return createGame(action.seed ?? ((Date.now() ^ state.rng) >>> 0));
+      return createGame(action.seed);
     default:
       return state;
   }

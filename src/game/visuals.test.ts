@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { ADULT_EVENTS, CHAPTERS, GROWTH_EVENTS } from './content';
 import { getAdultEventSceneVisual, getChapterSceneVisual, getGrowthSceneVisual, getSceneVisual } from './visuals';
+import { ECHO_ADULT_EVENTS, GROWTH_CONTINUATIONS } from './story';
 
 function expectFilesToExist(sources: string[]) {
   for (const source of sources) {
@@ -12,6 +13,14 @@ function expectFilesToExist(sources: string[]) {
 }
 
 describe('剧情视觉注册表', () => {
+  it('回响使用明确的旧物画面，新增事件没有丢失图像引用', () => {
+    const visuals = [
+      ...ECHO_ADULT_EVENTS.map((event) => getAdultEventSceneVisual(event.id, event.age, event.title)),
+      ...GROWTH_CONTINUATIONS.map(({ event }) => getGrowthSceneVisual(event.artAge ?? event.age, event.title)),
+    ];
+    expectFilesToExist(visuals.map((visual) => visual.src));
+    expect(visuals[0]!.src).toBe(getGrowthSceneVisual(9, '旧货摊上的机器').src);
+  });
   it('每个童年事件都有独立图片而不是泛用占位图', () => {
     const visuals = GROWTH_EVENTS.map((event) => getGrowthSceneVisual(event.age, event.title));
 

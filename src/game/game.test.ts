@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { approachRelation, canChooseAdultChoice, createGame, getAdultChoiceBlockReason, getAdultChoices, getAdultEvent, getChapter, getGrowthEvent, getRedrawPressureCost, getWorldPower, previewCardPlay, reduceGame } from './game';
 import { ADULT_EVENTS } from './content';
 import type { GameState } from './types';
@@ -24,6 +24,23 @@ function growUp(seed = 12345): GameState {
 }
 
 describe('浮生牌局规则模块', () => {
+  it('重开使用动作中的种子，跨时间回放相同，零种子也不会被替换', () => {
+    const state = growUp(123);
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(100);
+    try {
+      const action = { type: 'RESTART', seed: 0 } as const;
+      const first = reduceGame(state, action);
+      clock.mockReturnValue(101);
+      const second = reduceGame(state, action);
+      expect(first).toEqual(createGame(0));
+      expect(second).toEqual(first);
+      expect(reduceGame(second, { type: 'BEGIN' })).toEqual(reduceGame(first, { type: 'BEGIN' }));
+      expect(clock).not.toHaveBeenCalled();
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
   it('同一种子和同一行动会生成完全相同的人生', () => {
     const first = growUp(20260812);
     const second = growUp(20260812);
@@ -376,7 +393,9 @@ describe('浮生牌局规则模块', () => {
           .filter((item) => canChooseAdultChoice(state, item))
           .sort((left, right) => (right.changes.heart ?? 0) - (left.changes.heart ?? 0))[0]!;
         state = reduceGame(state, { type: 'CHOOSE_ADULT_EVENT', choiceId: choice.id });
-      } else if (state.phase === 'adult-result') {
+      } else if (state.phase === 'interlude') {
+      state = reduceGame(state, { type: 'CONFIRM_INTERLUDE' });
+    } else if (state.phase === 'adult-result') {
         state = reduceGame(state, { type: 'CONTINUE_ADULT_EVENT' });
       }
       safety += 1;

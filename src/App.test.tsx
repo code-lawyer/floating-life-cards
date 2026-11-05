@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { createGame, getGrowthEvent, reduceGame } from './game/game';
 import { loadGame, saveGame } from './game/persistence';
 import { resourceDeltaLabel, resourceDeltaTone } from './game/presentation';
+import { makeStoryStates } from './test/storyFixture';
 import type { GameState, StartingIdentityId } from './game/types';
 
 function makeDeckState(): GameState {
@@ -25,16 +26,80 @@ function saveResolvedPrototype(
   identityId: StartingIdentityId,
   encounterOverrides: Partial<NonNullable<GameState['encounter']>> = {},
 ) {
-  const initial = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId });
+  let finished = reduceGame(createGame(1), { type: 'START_PROTOTYPE', identityId });
+  while (finished.phase === 'encounter') {
+    finished = reduceGame(finished, { type: 'PLAY_CARD', cardId: finished.encounter!.hand[0]! });
+  }
+  const encounter = { ...finished.encounter!, ...encounterOverrides };
   saveGame({
-    ...initial,
-    phase: 'encounter-result',
-    encounter: { ...initial.encounter!, resolved: true, won: false, ...encounterOverrides },
+    ...finished,
+    encounter,
+    chapterResults: [encounter.won],
   });
   window.history.replaceState({}, '', '/?playtest=adult-prototype');
 }
 
 describe('玩家入口', () => {
+  it.each(['重开', '再活一次'])('%s入口生成新种子并将旧进度替换为新故事', (buttonName) => {
+    const states = makeStoryStates();
+    const state = states.find((item) => item.phase === (buttonName === '重开' ? 'encounter' : 'ending'))!;
+    saveGame(state);
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_000_000);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    try {
+      render(<App />);
+      fireEvent.click(screen.getByRole('button', { name: buttonName }));
+      expect(screen.getByRole('button', { name: '登记出生' })).toBeInTheDocument();
+      const expected = createGame((1_000_000 ^ state.rng) >>> 0);
+      expect(loadGame()).toEqual(expected);
+      expect(expected.seed).not.toBe(state.seed);
+      expect(confirm).toHaveBeenCalledTimes(buttonName === '重开' ? 1 : 0);
+    } finally {
+      clock.mockRestore();
+      confirm.mockRestore();
+    }
+  });
+
+  it('等待远程叙事时重开，旧响应不能替新的一局出牌', async () => {
+    window.history.replaceState({}, '', '/?playtest=adult-prototype');
+    localStorage.setItem('floating-life-cards.judge-endpoint', 'https://judge.example');
+    let finishRequest!: (response: { ok: boolean; json: () => Promise<{ text: string }> }) => void;
+    let requestSignal: AbortSignal | undefined;
+    vi.stubGlobal('fetch', vi.fn((_url: string, options: RequestInit) => {
+      requestSignal = options.signal ?? undefined;
+      // 故意不响应 abort，确保即使端点已经返回或适配器不取消，旧结果也不会提交。
+      return new Promise((resolve) => { finishRequest = resolve; });
+    }));
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    try {
+      render(<App />);
+      fireEvent.click(screen.getByRole('button', { name: '以职校技术员开始原型' }));
+      fireEvent.click(screen.getByRole('button', { name: '跳过教学' }));
+      fireEvent.click(screen.getAllByRole('button', { name: /^唤起/ })[0]!);
+      expect(screen.getByText('裁判正在落笔…')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: '重开' }));
+      fireEvent.click(screen.getByRole('button', { name: '以职校技术员开始原型' }));
+      const freshGame = loadGame('prototype');
+      await act(async () => {
+        finishRequest({ ok: true, json: async () => ({ text: '旧局的叙述' }) });
+      });
+      expect(requestSignal?.aborted).toBe(true);
+      expect(loadGame('prototype')).toEqual(freshGame);
+      expect(screen.getByText('第 1 / 5 轮')).toBeInTheDocument();
+      expect(screen.queryByText('旧局的叙述')).not.toBeInTheDocument();
+    } finally {
+      confirm.mockRestore();
+    }
+  });
+
+  it('损坏的嵌套存档回到入口，玩家仍能开始新故事', () => {
+    const state = reduceGame(createGame(12), { type: 'BEGIN' });
+    localStorage.setItem('floating-life-cards.save.v7', JSON.stringify({ ...state, journal: [null] }));
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: '登记出生' }));
+    expect(screen.getByRole('heading', { name: '你只是一个普通人' })).toBeInTheDocument();
+  });
+
   it('浏览器存储不可用时仍能开始游戏并修改叙事设置', () => {
     const getItem = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('storage disabled');
@@ -236,7 +301,7 @@ describe('玩家入口', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: `召回「${card.title}」` }));
     expect(screen.getByText('童年余温已用')).toBeInTheDocument();
-    expect(screen.getByText(card.memory)).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: '童年余温' })).getByText(card.memory)).toBeInTheDocument();
     const originLabel = typeof card.originAge === 'number' ? `${card.originAge} 岁` : `${card.originAge}牌`;
     expect(within(screen.getByRole('region', { name: '童年余温' })).getByText(new RegExp(originLabel))).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: `召回「${card.title}」` })).not.toBeInTheDocument();
@@ -296,7 +361,7 @@ describe('玩家入口', () => {
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining('# 《浮生牌局》成年困局试玩客观记录')));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('- 试玩身份：职校技术员'));
-    expect(screen.getByRole('status')).toHaveTextContent('本局记录已复制，可粘贴到试玩模板');
+    expect(await screen.findByRole('status')).toHaveTextContent('本局记录已复制，可粘贴到试玩模板');
   });
 
   it('剪贴板权限受限时明确提示试玩主持重试', async () => {

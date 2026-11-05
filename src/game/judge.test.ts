@@ -8,7 +8,10 @@ const REQUEST = {
   intent: { title: '资历门槛', text: '规章挡住故事。', approach: '洞察' as const },
 };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 describe('可选叙事裁判', () => {
   it('空端点直接使用本地裁判', async () => {
@@ -26,5 +29,27 @@ describe('可选叙事裁判', () => {
   it('远程错误会无缝退回本地文案', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     expect(await requestJudgeNarration('https://judge.example', REQUEST)).toBeNull();
+  });
+
+  it('已取消的出牌请求不访问端点', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const controller = new AbortController();
+    controller.abort();
+    expect(await requestJudgeNarration('https://judge.example', REQUEST, controller.signal)).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each(['离开牌局', '五秒超时'])('%s 会中止网络请求并释放计时器', async (reason) => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn((_url: string, options: RequestInit) => new Promise((_resolve, reject) => {
+      options.signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
+    })));
+    const controller = new AbortController();
+    const pending = requestJudgeNarration('https://judge.example', REQUEST, controller.signal);
+    if (reason === '离开牌局') controller.abort();
+    else await vi.advanceTimersByTimeAsync(5000);
+    expect(await pending).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

@@ -88,6 +88,8 @@ function choice(
   };
 }
 
+export { choice as makeGrowthChoice };
+
 export const GROWTH_EVENTS: GrowthEvent[] = [
   {
     age: 4, stage: '幼儿园', title: '蓝色蜡笔',

@@ -106,9 +106,8 @@ const server = http.createServer(async (request, response) => {
     const payload = await readJson(request);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20_000);
-    let upstream;
     try {
-      upstream = await fetch(`${baseUrl}/chat/completions`, {
+      const upstream = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -122,20 +121,21 @@ const server = http.createServer(async (request, response) => {
         }),
         signal: controller.signal,
       });
+      if (!upstream.ok) {
+        send(response, 502, { error: `LLM upstream returned ${upstream.status}.` }, origin);
+        return;
+      }
+      const result = await upstream.json();
+      const text = extractText(result).replace(/[\r\n#*_`]/g, ' ').trim().slice(0, 140);
+      if (!text) {
+        send(response, 502, { error: 'LLM upstream returned no text.' }, origin);
+        return;
+      }
+      send(response, 200, { text }, origin);
     } finally {
+      // fetch收到响应头就会完成，超时必须覆盖后续正文读取。
       clearTimeout(timeout);
     }
-    if (!upstream.ok) {
-      send(response, 502, { error: `LLM upstream returned ${upstream.status}.` }, origin);
-      return;
-    }
-    const result = await upstream.json();
-    const text = extractText(result).replace(/[\r\n#*_`]/g, ' ').trim().slice(0, 140);
-    if (!text) {
-      send(response, 502, { error: 'LLM upstream returned no text.' }, origin);
-      return;
-    }
-    send(response, 200, { text }, origin);
   } catch (error) {
     const message = error instanceof Error && error.message === 'BODY_TOO_LARGE' ? 'Request body is too large.' : 'Judge request failed.';
     send(response, 400, { error: message }, origin);
